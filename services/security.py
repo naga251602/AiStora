@@ -62,23 +62,26 @@ class AstValidator(ast.NodeVisitor):
         raise SecurityViolation("Imports are strictly forbidden.")
 
 def secure_eval(code_string, context):
-    """
-    Parses and validates code before executing it.
-    """
     try:
-        # 1. Parse the code into a tree
         tree = ast.parse(code_string, mode='eval')
-        
-        # 2. Get all allowed variable names from the context
+
         allowed_names = list(context.keys())
         
-        # 3. Validate the tree
         validator = AstValidator(allowed_names)
         validator.visit(tree)
-        
-        # 4. If validation passes, Execute
+
+        SAFE_BUILTINS = {
+            "len": len,
+            "int": int,
+            "float": float,
+            "str": str,
+            "max": max,
+            "min": min,
+            "sum": sum,
+        }
+
         logger.info(f"Executing secure code: {code_string}")
-        return eval(code_string, {"__builtins__": {}}, context)
+        return eval(code_string, {"__builtins__": SAFE_BUILTINS}, context)
         
     except SecurityViolation as e:
         logger.error(f"Security blocked: {str(e)}")
