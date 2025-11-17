@@ -4,124 +4,205 @@ import os
 class CsvParser:
     """
     A custom CSV parser that reads and parses CSV files from scratch.
-    It now also infers data types.
+    Designed to scale to very large CSV files (GB+).
+    
+    Features:
+      - Streaming, line-by-line parsing (no full file load into memory)
+      - Optional type inference from a sample of rows
+      - Optional casting of values to inferred types
+      - Optional chunked iteration for batch processing
     """
-    def __init__(self, filepath, separator=','):
+    def __init__(self, filepath, separator=',', infer_types=True, sample_size=50):
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"File not found: {filepath}")
         self.filepath = filepath
         self.separator = separator
         self.header = self._get_header()
-        # --- NEW: Infer and store types ---
-        self.column_types = self._infer_types()
+
+        if infer_types:
+            self.column_types = self._infer_types(sample_size=sample_size)
+        else:
+            # Default everything to str if you don't want to infer
+            self.column_types = {col: 'str' for col in self.header}
+
+    # ---------- Helpers ----------
 
     def _clean_line(self, line):
-        """Helper to strip whitespace and newline characters."""
+        """Strip whitespace and newline characters."""
         return line.strip()
 
     def _get_header(self):
-        """
-        Reads only the first line of the file to get the headers.
-        """
+        """Reads only the first line of the file to get the headers."""
         try:
             with open(self.filepath, 'r', encoding='utf-8') as f:
                 header_line = self._clean_line(f.readline())
-            # Strip spaces from headers
             return [h.strip() for h in header_line.split(self.separator)]
         except Exception as e:
             print(f"Error reading header: {e}")
             return []
 
     def get_header(self):
-        """Public method to access the parsed header."""
         return self.header
 
-    # --- NEW: Public method to get types ---
     def get_column_types(self):
-        """Public method to access the inferred column types."""
         return self.column_types
 
-    def _is_int(self, val):
+    def _is_int(self, val: str) -> bool:
         try:
             int(val)
             return True
         except ValueError:
             return False
 
-    def _is_float(self, val):
+    def _is_float(self, val: str) -> bool:
         try:
             float(val)
             return True
         except ValueError:
             return False
 
-    # --- NEW: Type inference logic ---
-    def _infer_types(self):
+    def _cast_value(self, col_name, value):
         """
-        Infers column types (int, float, str) by sampling the first 50 rows.
+        Casts a single string value into the inferred type.
+        Empty strings become None.
         """
-        types = {col: 'int' for col in self.header} # Start by assuming all are int
-        
-        sample_count = 0
-        for row in self.parse(): # This uses the parse generator
-            if sample_count >= 50:
-                break
-            
-            for col_name, value in row.items():
-                if value is None or value == '':
-                    continue # Skip empty values
-                
-                current_type = types[col_name]
-                
-                # If it's already a string, it stays a string
-                if current_type == 'str':
-                    continue
-                
-                # Check if it's an int
-                if current_type == 'int':
-                    if not self._is_int(value):
-                        # Not an int, check if it's a float
-                        types[col_name] = 'float'
-                
-                # Check if it's a float (or was just downgraded from int)
-                if types[col_name] == 'float':
-                    if not self._is_float(value):
-                        # Not a float, downgrade to string
-                        types[col_name] = 'str'
-                        
-            sample_count += 1
-            
+        if value == '':
+            return None
+
+        t = self.column_types.get(col_name, 'str')
+
+        if t == 'int':
+            try:
+                return int(value)
+            except ValueError:
+                # Fallback if inference was wrong
+                return value
+        elif t == 'float':
+            try:
+                return float(value)
+            except ValueError:
+                return value
+        else:
+            return value
+
+    # ---------- Type inference ----------
+
+    def _infer_types(self, sample_size=50):
+        """
+        Infers column types (int, float, str) by scanning up to `sample_size` rows.
+        Still fully streaming: it only reads what it needs.
+        """
+        types = {col: 'int' for col in self.header}  # optimistic start
+
+        try:
+            with open(self.filepath, 'r', encoding='utf-8') as f:
+                # Skip header
+                f.readline()
+
+                sample_count = 0
+                for line in f:
+                    if sample_count >= sample_size:
+                        break
+
+                    cleaned_line = self._clean_line(line)
+                    if not cleaned_line:
+                        continue
+
+                    values = [v.strip() for v in cleaned_line.split(self.separator)]
+                    if len(values) != len(self.header):
+                        # Skip malformed lines from inference
+                        continue
+
+                    row = dict(zip(self.header, values))
+
+                    for col_name, value in row.items():
+                        if value == '':
+                            continue
+
+                        current_type = types[col_name]
+
+                        if current_type == 'str':
+                            continue
+
+                        # Check for int
+                        if current_type == 'int':
+                            if not self._is_int(value):
+                                # downgrade to float candidate
+                                types[col_name] = 'float'
+                                current_type = 'float'
+
+                        # Check for float
+                        if current_type == 'float':
+                            if not self._is_float(value):
+                                # downgrade to string
+                                types[col_name] = 'str'
+
+                    sample_count += 1
+
+        except Exception as e:
+            print(f"Error during type inference: {e}")
+            types = {col: 'str' for col in self.header}
+
         print(f"Inferred types for {self.filepath}: {types}")
         return types
 
-    def parse(self):
+    # ---------- Streaming parsers ----------
+
+    def parse(self, cast=True):
         """
-        A generator function that reads the CSV file line-by-line.
-        It yields each row as a dictionary, mapping headers to values.
+        Generator that yields one row at a time as a dict.
+
+        Parameters
+        ----------
+        cast : bool
+            If True, cast values to the inferred types.
+            If False, leave everything as raw strings.
         """
         try:
             with open(self.filepath, 'r', encoding='utf-8') as f:
-                # Skip the header line which we've already processed
+                # Skip header
                 f.readline()
-                
                 line_number = 1
-                line = f.readline()
-                while line:
+
+                for line in f:
                     line_number += 1
                     cleaned_line = self._clean_line(line)
-                    if cleaned_line:  # Skip empty lines
-                        # Strip spaces from values
-                        values = [v.strip() for v in cleaned_line.split(self.separator)]
-                        
-                        # Handle validation for consistent column counts
-                        if len(values) == len(self.header):
-                            # Creates the dictionary-like format
-                            row_dict = dict(zip(self.header, values))
-                            yield row_dict
-                        else:
-                            print(f"Warning: Skipping malformed line {line_number}. Expected {len(self.header)} columns, got {len(values)}: {line}")
-                    
-                    line = f.readline()
+                    if not cleaned_line:
+                        continue
+
+                    values = [v.strip() for v in cleaned_line.split(self.separator)]
+
+                    if len(values) != len(self.header):
+                        print(
+                            f"Warning: Skipping malformed line {line_number}. "
+                            f"Expected {len(self.header)} columns, got {len(values)}: {line!r}"
+                        )
+                        continue
+
+                    row_dict = dict(zip(self.header, values))
+
+                    if cast:
+                        for col in row_dict:
+                            row_dict[col] = self._cast_value(col, row_dict[col])
+
+                    yield row_dict
         except Exception as e:
             print(f"Error during parsing: {e}")
             return
+
+    def parse_chunks(self, chunk_size=1000, cast=True):
+        """
+        Generator that yields lists of rows (chunks) of size `chunk_size`.
+
+        Useful for massive datasets where you want to operate on batches.
+        """
+        batch = []
+        for row in self.parse(cast=cast):
+            batch.append(row)
+            if len(batch) >= chunk_size:
+                yield batch
+                batch = []
+
+        # Yield any remaining rows
+        if batch:
+            yield batch
