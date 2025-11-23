@@ -1,3 +1,4 @@
+````markdown
 # AIStora
 
 AIStora is an end-to-end AI analytics platform powered by a custom in-memory data engine and a natural-language query layer. It lets users upload CSV files, explore them with SQL-like logic, and generate visual insights simply by chatting with an AI assistant.
