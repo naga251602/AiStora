@@ -1,135 +1,166 @@
-AIStora 🚀
+````md
+# AIStora
 
-AIStora is an end-to-end AI analytics platform powered by a custom in-memory data engine and a natural-language query layer. It allows users to upload CSV files, explore them with relational logic, and generate visual insights simply by chatting with an AI assistant.
+AIStora is an end-to-end AI analytics platform powered by a custom in-memory data engine and a natural-language query layer. It enables users to upload CSV files, explore them using SQL-like logic, and generate visual insights simply by chatting with an AI assistant.
 
-Built with Flask, PostgreSQL, and Docker, AIStora performs fast projections, filters, joins, and aggregates without relying on Pandas. Gemini AI drives the natural-language processing that converts user questions into executable Python expressions using our proprietary DataFrame API.
+Built with Flask, PostgreSQL, Docker, and a lightweight custom engine, AIStora performs fast projections, filters, joins, and aggregations without relying on Pandas. Gemini AI converts natural-language questions into executable data operations.
 
-✨ Intelligent Output Showcase
+---
 
-AiStora translates natural language into optimized DataFrame logic across three primary output formats.
+## 🎥 Demo
 
-🎬 Project Demo
+A short walkthrough demonstrating:
+- CSV upload and logical database creation  
+- Natural-language query execution  
+- AI-generated query plans  
+- Real-time tables and visualizations  
 
-View the full system interaction in action:
+▶️ **Play the demo video:**  
+[Watch Demo](./demo/demo.mp4)
 
-<p align="center">
-<video src="./demo/demo.MOV" width="100%" controls autoplay loop muted>
-Your browser does not support the video tag.
-</video>
-</p>
+GitHub will render the video inline using the built-in player.
 
-1️⃣ Number Output
+---
 
-Instant aggregation for specific counts, sums, and averages.
+## Features
 
-Query: "What's the total revenue for this quarter?"
-Logic: orders.aggregate(orders.groupby("quarter"), {"amount": "sum"})
+**AI-Driven Data Exploration**  
+Ask questions in plain English and let the system translate them into executable data operations.
 
-2️⃣ Table Output
+**Custom In-Memory Engine**  
+A lightweight engine optimized for speed, supporting:
+- Column projection and row filtering  
+- Grouping and aggregation  
+- Inner joins and type inference  
+- Streaming CSV parsing for large datasets  
 
-Detailed relational breakdowns with automated code generation and CSV export.
+**Instant Visualizations**  
+Generate tables, counts, bar charts, and line plots in real time.
 
-Query: "Show me the top 3 regions by revenue."
-Logic: sales.aggregate(sales.groupby("region"), {"revenue": "sum"}).top_k_by("revenue", 3)
+**Secure Authentication**  
+User registration, login, and session-based access control.
 
-3️⃣ Chart Output
+**Logical Databases**  
+Isolated workspaces with support for multiple CSVs per database.
 
-Visual trend analysis with automatic high-resolution expansion for deep insights.
+**Zero Pandas Dependency**  
+All data logic is implemented natively.
 
-Query: "Visualize the regional revenue distribution."
-Logic: sales.aggregate(sales.groupby("region"), {"revenue": "sum"})
+---
 
-🛠 Features
+## Tech Stack
 
-AI-Driven Data Exploration: Ask questions in plain English. AIStora translates them into valid engine operations using a strict "No-Loops" Python expression policy.
+**Backend:** Flask, SQLAlchemy, Gunicorn  
+**Database:** PostgreSQL  
+**Engine:** Custom DataFrame implementation with streaming CSV parser  
+**AI / LLM:** Google Gemini  
+**Frontend:** Vanilla JavaScript, Tailwind CSS, HTML templates  
+**Infrastructure:** Docker, Docker Compose  
+**CI/CD:** GitHub Actions
 
-Custom In-Memory Engine: A lightweight data engine designed for speed, supporting column projection, row filtering, grouping, aggregation, inner joins, and type inference.
+---
 
-Instant Visualizations: Generate real-time bar charts and metrics with "Click-to-Expand" high-res modals.
+## Architecture
 
-Zero Pandas Dependency: All data logic is implemented natively to demonstrate system-level engineering.
-
-Secure Architecture: Full authentication and isolated logical databases per user workspace.
-
-🏗 Tech Stack
-
-Layer
-
-Technology
-
-Backend
-
-Flask, SQLAlchemy, Gunicorn
-
-Database
-
-PostgreSQL
-
-Engine
-
-Custom DataFrame Implementation + Streaming Parser
-
-AI/LLM
-
-Google Gemini (Query Plan Translation)
-
-Frontend
-
-Vanilla JS, Tailwind CSS, HTML Templates, Chart.js
-
-Infrastructure
-
-Docker, Docker Compose
-
-📐 Architecture
-
+```mermaid
 graph TD
-    User[User] -->|Browser/Chat| UI[Frontend UI]
+    User[User] -->|Browser / Chat| UI[Frontend UI]
     UI -->|HTTP Requests| API[Flask Backend]
     API -->|Auth| DB[(PostgreSQL)]
-    API -->|Natural Language| LLM[Gemini AI]
+    API -->|Natural Language Query| LLM[Gemini AI]
     LLM -->|Query Plan| Engine[Custom Data Engine]
     Engine -->|Read| CSV[CSV Files]
     Engine -->|Results| API
+````
 
+---
 
-🚀 Installation & Setup
+## Installation & Setup
 
-Prerequisites
+### Prerequisites
 
-Docker Desktop
+* Docker Desktop
+* Git
+* Google Gemini API key
 
-Git
+### 1. Clone the Repository
 
-Google Gemini API Key
-
-1. Clone & Configure
-
-git clone [https://github.com/naga251602/AIStora.git](https://github.com/naga251602/AIStora.git)
+```bash
+git clone https://github.com/naga251602/AIStora.git
 cd AIStora
+```
+
+### 2. Configure Environment Variables
+
+```bash
 cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
+```
 
+Add your Gemini API key and other configuration values.
 
-2. Run with Docker
+### 3. Run with Docker
 
+```bash
 docker-compose up --build
+```
 
+Run in detached mode:
 
-3. Access
+```bash
+docker-compose up --build -d
+```
 
-Visit http://localhost:5001
+### 4. Access the Application
 
-💡 Why This Project Matters
+```
+http://localhost:5001
+```
 
-AIStora demonstrates advanced system-level engineering:
+Stop the application:
 
-Custom Compute Engine: Building a DataFrame engine from scratch requires deep knowledge of data structures and algorithmic complexity.
+```bash
+docker-compose down
+```
 
-System Design: Orchestrating AI services, persistent storage, and ephemeral in-memory processing in a containerized environment.
+---
 
-Interface Design: Bridging complex data outputs with a clean, conversational UX.
+## Development Workflow
 
-📄 License
+### Directory Structure
 
-MIT License — © 2025 AiStora Platform.
+```
+/engine         # Custom DataFrame and parser logic
+/services       # LLM integration and chart generation
+/routes         # Blueprints for auth, chat, and data operations
+/templates      # Jinja2 HTML templates
+/static         # JavaScript and Tailwind CSS
+/tests          # Pytest suite
+```
+
+### Running Tests
+
+```bash
+docker-compose exec web pytest
+```
+
+---
+
+## Why This Project Matters
+
+**Custom Compute Engine**
+Demonstrates strong understanding of data structures, parsing, and query execution.
+
+**System Design**
+Integrates AI, persistent storage, and in-memory computation in a Dockerized architecture.
+
+**Modularity**
+Clear separation between the data engine, web layer, and AI services.
+
+---
+
+## License
+
+MIT License
+
+```
+```
