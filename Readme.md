@@ -14,8 +14,10 @@ A short walkthrough demonstrating:
 - AI-generated query plans  
 - Real-time tables and visualizations  
 
-▶️ **Play the demo video:**  
-![AIStora Demo](./demo/demo.gif)
+<p>
+  <strong>▶️ Demo video:</strong><br/><br/>
+  <img src="./demo/demo.gif" width="800" height="800"/>
+</p>
 
 
 GitHub will render the video inline using the built-in player.
