@@ -19,9 +19,6 @@ A short walkthrough demonstrating:
   <img src="./demo/demo.gif" width="800" height="800"/>
 </p>
 
-
-GitHub will render the video inline using the built-in player.
-
 ---
 
 ## Features
