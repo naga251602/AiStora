@@ -15,7 +15,8 @@ A short walkthrough demonstrating:
 - Real-time tables and visualizations  
 
 ▶️ **Play the demo video:**  
-[Watch Demo](./demo/demo.mp4)
+![AIStora Demo](./demo/demo.gif)
+
 
 GitHub will render the video inline using the built-in player.
 
