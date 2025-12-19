@@ -28,10 +28,18 @@ const Main = {
       const res = await API.fetch("/api/auth/status");
       if (res.isLoggedIn) {
         API.setUser(res.user);
+
         const currentHash = window.location.hash.replace("#", "");
+
+        // If we are on a public page (or root), go to Dashboard
         if (["landing", "auth", ""].includes(currentHash)) {
           Router.navigate("db");
+        } else {
+          // If we are already on a protected page (e.g. #chat), stay there!
+          // We must call navigate() to hide the Landing page and show the correct screen.
+          Router.navigate(currentHash);
         }
+
         this.loadDatabases();
       } else {
         API.removeToken();
