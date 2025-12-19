@@ -16,3 +16,5 @@ uploads/*
 # Secrets and environment variables
 .env
 *.json
+
+output.txt

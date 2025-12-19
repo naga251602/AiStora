@@ -1,13 +1,14 @@
-# config.py
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 load_dotenv()
 
 class Config:
-    # Read from env, fallback to random only for local dev
-    SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(24))
-    
+    # Ensure this string is STATIC (fixed), not os.urandom()
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-static-key-12345")
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
     UPLOAD_FOLDER = 'uploads'
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
     DATABASE_URL = os.environ.get("DATABASE_URL")

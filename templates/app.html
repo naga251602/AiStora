@@ -1,14 +1,77 @@
-{% extends "base.html" %} {% block title %}Aistora | App{% endblock %} {% block
-content %}
-<div id="app" class="h-full w-full flex flex-col bg-white">
-  <main class="flex-1 flex flex-col h-0 relative">
-    {% include 'components/overlays.html' %} {% include
-    'components/app/auth_screen.html' %} {% include
-    'components/app/db_selection.html' %} {% include
-    'components/app/upload_screen.html' %} {% include
-    'components/app/chat_screen.html' %}
-  </main>
-</div>
-{% endblock %} {% block scripts %}
-<script src="{{ url_for('static', filename='js/scripts.js', v=version_id) }}"></script>
-{% endblock %}
+{% extends "base.html" %} {% block title %}AiStora — Relational Intelligence{%
+endblock %} {% block content %}
+<header
+  id="global-nav"
+  class="shrink-0 hidden z-50 animate-in px-4 md:px-8 py-4 bg-white/50 backdrop-blur-sm sticky top-0"
+>
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <div
+      class="flex items-center gap-3 cursor-pointer group"
+      onclick="Router.navigate('landing')"
+    >
+      <div
+        class="h-9 w-9 rounded-xl bg-zinc-950 flex items-center justify-center transition-transform group-hover:scale-110"
+      >
+        <i data-lucide="database" class="h-5 w-5 text-white"></i>
+      </div>
+      <span class="text-base font-bold tracking-tight text-zinc-800"
+        >AiStora</span
+      >
+    </div>
+
+    <div class="flex items-center gap-4">
+      <button
+        onclick="Auth.logout()"
+        class="text-[10px] font-bold text-zinc-400 hover:text-red-600 transition-colors uppercase tracking-widest"
+      >
+        Log Out
+      </button>
+      <div
+        class="h-9 w-9 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-[11px] font-bold text-zinc-500 cursor-pointer"
+        title="User Profile"
+      >
+        JD
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 relative overflow-hidden">
+  {% include 'components/landing_screen.html' %} {% include
+  'components/auth_screen.html' %} {% include 'components/db_selection.html' %}
+  {% include 'components/upload_screen.html' %} {% include
+  'components/chat_screen.html' %}
+
+  <div
+    id="imageModal"
+    class="fixed inset-0 z-50 hidden bg-black bg-opacity-90 flex items-center justify-center p-4"
+    onclick="closeImageModal()"
+  >
+    <div class="relative max-w-5xl w-full" onclick="event.stopPropagation()">
+      <button
+        onclick="closeImageModal()"
+        class="absolute -top-10 right-0 text-white text-xl hover:text-gray-300"
+      >
+        <i class="fas fa-times"></i> Close
+      </button>
+      <img
+        id="modalImage"
+        src=""
+        alt="Expanded Chart"
+        class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl bg-white"
+      />
+      <div class="mt-4 text-center">
+        <a
+          id="modalDownloadLink"
+          href="#"
+          download="chart.png"
+          class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors"
+        >
+          <i class="fas fa-download mr-2"></i> Download High Res
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+{% include 'components/overlays.html' %} {% endblock %}

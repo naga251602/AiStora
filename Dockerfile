@@ -14,16 +14,16 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Create a startup script to run DB init ONCE, then start Gunicorn
+# Create startup script at ROOT (/) so volume mount at /app doesn't hide it
 RUN echo '#!/bin/bash\n\
-# Initialize DB (This runs in a single process)\n\
+# Initialize DB\n\
 python -c "from app import app, db; app.app_context().push(); db.create_all()"\n\
 \n\
 # Start Gunicorn\n\
 exec gunicorn -c gunicorn_config.py app:app\n\
-' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+' > /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 5000
 
-# Use the new entrypoint script
-CMD ["/app/entrypoint.sh"]
+# Run the script from root
+CMD ["/entrypoint.sh"]

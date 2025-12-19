@@ -6,12 +6,14 @@ services:
     ports:
       - "5001:5000"
     volumes:
-      - ./uploads:/app/uploads
+      - .:/app # <--- THIS IS THE CRITICAL FIX (Syncs your code)
+      - /app/instance # Keeps your DB safe inside the container
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DATABASE_URL=postgresql://user:password@db:5432/aistora
-      - FLASK_ENV=production
-      - SECRET_KEY=super-secret-key-for-production-fix
+      - FLASK_ENV=development # <--- Changed to development for hot-reload
+      - SECRET_KEY=dev-secret-key-fixed
+      - JWT_SECRET_KEY=dev-secret-key-fixed
     depends_on:
       - db
     restart: always

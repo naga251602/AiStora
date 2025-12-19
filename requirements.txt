@@ -7,3 +7,4 @@ python-dotenv
 gunicorn
 selenium
 webdriver-manager
+Flask-JWT-Extended

@@ -1,12 +1,11 @@
 # app.py
 import os
-import time # <-- ADD THIS
+import time 
 from flask import Flask
 from config import Config
-from extensions import db
+from extensions import db, jwt # <--- Import jwt from extensions
 from services.llm_service import configure_llm
 from models import User, Project, Table
-
 
 from routes.pages import pages_bp
 from routes.auth import auth_bp
@@ -19,10 +18,14 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Force JWT Key explicitly to avoid any Config loading issues
+    app.config['JWT_SECRET_KEY'] = app.config.get('SECRET_KEY')
+
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    # Init DB
+    # Init DB & JWT
     db.init_app(app)
+    jwt.init_app(app) # <--- Initialize the global instance properly
 
     # Import models AFTER db.init_app(app)
     with app.app_context():
@@ -31,12 +34,9 @@ def create_app():
 
     configure_llm()
 
-
     @app.context_processor
     def inject_version():
-        """Injects a unique version ID into all templates."""
         return dict(version_id=int(time.time()))
-    # --- END ADD ---
     
     app.register_blueprint(pages_bp)
     app.register_blueprint(auth_bp)
@@ -48,8 +48,6 @@ def create_app():
     return app
 
 app = create_app()
-
-
 
 if __name__ == '__main__':
     with app.app_context():

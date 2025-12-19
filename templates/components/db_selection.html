@@ -1,0 +1,66 @@
+<section
+  id="screen-db"
+  class="screen absolute inset-0 hidden overflow-auto p-8 md:p-12"
+>
+  <div class="max-w-7xl mx-auto">
+    <div
+      class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 animate-in"
+    >
+      <div class="text-left">
+        <h1 class="text-4xl font-black tracking-tight text-zinc-950">
+          Workspaces
+        </h1>
+        <p class="text-zinc-400 mt-2 font-medium">
+          Select a context to begin relational analysis.
+        </p>
+      </div>
+      <button
+        onclick="document.getElementById('modal-create-db').classList.remove('hidden')"
+        class="bg-zinc-950 text-white px-6 py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-800 btn-active transition-all w-full md:w-auto"
+      >
+        <i data-lucide="plus" class="h-4 w-4"></i> New Workspace
+      </button>
+    </div>
+
+    <div
+      id="modal-create-db"
+      class="fixed inset-0 z-[100] bg-zinc-950/20 backdrop-blur-sm hidden flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-md animate-in"
+      >
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-xl font-bold text-zinc-950">New Workspace</h3>
+          <button
+            onclick="document.getElementById('modal-create-db').classList.add('hidden')"
+            class="h-8 w-8 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 transition-colors"
+          >
+            <i data-lucide="x" class="h-4 w-4"></i>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <label
+              class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest"
+              >Workspace Name</label
+            >
+            <input
+              type="text"
+              id="new-db-name"
+              class="w-full h-14 px-5 rounded-2xl bg-zinc-50 border-2 border-transparent focus:border-zinc-950 focus:bg-white transition-all font-bold text-zinc-900 outline-none placeholder:text-zinc-300"
+              placeholder="e.g. Finance Q1"
+            />
+          </div>
+          <button
+            onclick="Main.createDatabase()"
+            class="w-full h-14 bg-zinc-950 text-white rounded-2xl font-bold text-sm hover:bg-zinc-800 transition-all active:scale-95 shadow-lg"
+          >
+            Create Workspace
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="db-list" class="grid grid-cols-1 md:grid-cols-12 gap-6"></div>
+  </div>
+</section>

@@ -1,5 +1,6 @@
 # services/llm_service.py
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold # Add this import
 from config import Config
 
 model = None
@@ -104,6 +105,15 @@ project([...]) -> LIST[dict]
   These methods ONLY work on DataFrame objects.
 
 ------------------------------------------------------------
+CHARTING / VISUALIZATION RULES
+------------------------------------------------------------
+If the user asks to "visualize", "chart", "plot", or "graph":
+1. First, aggregate the data using the standard dataframe methods.
+2. Then, wrap the result in `build_chart_url(title, chart_type, data)`.
+
+Supported chart_types: 'bar', 'line', 'pie', 'doughnut'.
+
+------------------------------------------------------------
 ABSOLUTE RESTRICTIONS
 ------------------------------------------------------------
 NEVER DO THESE:
@@ -131,9 +141,19 @@ def configure_llm():
     try:
         if Config.GEMINI_API_KEY:
             genai.configure(api_key=Config.GEMINI_API_KEY)
+            
+            # Define Safety Settings to allow Code Generation
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+
             model = genai.GenerativeModel(
-                'gemini-2.5-flash',
-                system_instruction=SYSTEM_PROMPT
+                'gemini-2.5-pro', # CHANGE THIS from 2.5 to 1.5 (or 2.0-flash-exp)
+                system_instruction=SYSTEM_PROMPT,
+                safety_settings=safety_settings # Apply settings
             )
             print("✅ Gemini AI Configured Successfully")
         else:

@@ -1,0 +1,85 @@
+.
+├── __pycache__
+│   ├── app.cpython-310.pyc
+│   ├── config.cpython-310.pyc
+│   ├── extensions.cpython-310.pyc
+│   ├── gunicorn_config.cpython-310.pyc
+│   └── models.cpython-310.pyc
+├── app.py
+├── config.py
+├── demo
+│   ├── demo.gif
+│   └── demo.mp4
+├── dir.txt
+├── docker-compose.yml
+├── Dockerfile
+├── engine
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-310.pyc
+│   │   ├── dataframe.cpython-310.pyc
+│   │   └── parser.cpython-310.pyc
+│   ├── dataframe.py
+│   └── parser.py
+├── extensions.py
+├── gunicorn_config.py
+├── instance
+├── LICENSE
+├── models.py
+├── output.txt
+├── Readme.md
+├── requirements.txt
+├── routes
+│   ├── __pycache__
+│   │   ├── auth.cpython-310.pyc
+│   │   ├── chat.cpython-310.pyc
+│   │   ├── data.cpython-310.pyc
+│   │   ├── databases.cpython-310.pyc
+│   │   ├── pages.cpython-310.pyc
+│   │   └── tables.cpython-310.pyc
+│   ├── auth.py
+│   ├── chat.py
+│   ├── data.py
+│   ├── databases.py
+│   ├── pages.py
+│   └── tables.py
+├── services
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-310.pyc
+│   │   ├── chart_builder.cpython-310.pyc
+│   │   ├── llm_service.cpython-310.pyc
+│   │   ├── logger.cpython-310.pyc
+│   │   └── security.cpython-310.pyc
+│   ├── chart_builder.py
+│   ├── llm_service.py
+│   ├── logger.py
+│   ├── security.py
+│   └── state_manager.py
+├── static
+│   └── js
+│       ├── api.js
+│       ├── auth.js
+│       ├── main.js
+│       ├── router.js
+│       └── scripts.js
+├── templates
+│   ├── app.html
+│   ├── base.html
+│   └── components
+│       ├── auth_screen.html
+│       ├── chat_screen.html
+│       ├── db_selection.html
+│       ├── footer.html
+│       ├── landing_screen.html
+│       ├── overlays.html
+│       └── upload_screen.html
+├── tests
+│   ├── __init__.py
+│   ├── test_dataframe.py
+│   └── test_parser.py
+└── uploads
+    ├── 1_customers.csv
+    └── 1_orders.csv
+
+16 directories, 67 files

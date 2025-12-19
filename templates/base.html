@@ -3,43 +3,172 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Aistora{% endblock %}</title>
+    <title>{% block title %}AiStora{% endblock %}</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest" crossorigin></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-      html,
+      @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
       body {
-        height: 100%;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: #fafafa;
+        color: #09090b;
+        overflow: hidden;
       }
-      .spinner {
-        border: 2px solid #f3f3f3;
-        border-top: 2px solid #3498db;
-        border-radius: 50%;
-        width: 16px;
-        height: 16px;
-        animation: spin 1s linear infinite;
+
+      /* Custom Scrollbar */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
       }
-      @keyframes spin {
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      /* Typography */
+      h1,
+      h2,
+      h3,
+      h4 {
+        letter-spacing: -0.03em;
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-in {
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .stagger-1 {
+        animation-delay: 0.1s;
+      }
+      .stagger-2 {
+        animation-delay: 0.15s;
+      }
+      .stagger-3 {
+        animation-delay: 0.2s;
+      }
+
+      /* UI Components */
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(228, 228, 231, 0.6);
+      }
+      .bento-card {
+        background: white;
+        border: 1px solid rgba(228, 228, 231, 0.7);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .command-bar {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(228, 228, 231, 0.8);
+      }
+      .code-block {
+        background: #0f172a;
+        color: #e2e8f0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 0.7rem;
+        padding: 1.25rem;
+        border-radius: 1rem;
+        line-height: 1.5;
+        overflow-x: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-top: 0.75rem;
+      }
+
+      /* Chat Bubbles */
+      .user-bubble {
+        background: #0ea5e9;
+        box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.2);
+        color: white;
+      }
+      .ai-bubble {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid rgba(228, 232, 240, 0.8);
+        color: #09090b;
+      }
+
+      /* Modals */
+      .modal-enter {
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .modal-enter-active {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      /* Utils */
+      .hr-text {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #a1a1aa;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .hr-text::before,
+      .hr-text::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid #e4e4e7;
+      }
+      .hr-text:not(:empty)::before {
+        margin-right: 0.75em;
+      }
+      .hr-text:not(:empty)::after {
+        margin-left: 0.75em;
+      }
+
+      /* Shimmer Effect */
+      .shimmer {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.5),
+          transparent
+        );
+        animation: shimmer 2s infinite;
+      }
+      @keyframes shimmer {
         0% {
-          transform: rotate(0deg);
+          transform: translateX(-100%);
         }
         100% {
-          transform: rotate(360deg);
+          transform: translateX(100%);
         }
       }
     </style>
   </head>
-  <body class="bg-slate-50 text-slate-800 h-full w-full overflow-hidden">
+  <body class="h-screen w-screen selection:bg-sky-100 flex flex-col">
     {% block content %}{% endblock %}
 
+    <script src="{{ url_for('static', filename='js/api.js', v=version_id) }}"></script>
+    <script src="{{ url_for('static', filename='js/router.js', v=version_id) }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js', v=version_id) }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js', v=version_id) }}"></script>
+
     <script>
-      // This is left here *only* to initialize the icons,
-      // as it's small and must run *after* the DOM is loaded.
-      // All other logic is in scripts.js
+      // Initialize Icons globally after load
       document.addEventListener("DOMContentLoaded", () => {
         lucide.createIcons();
       });
     </script>
-    {% block scripts %}{% endblock %}
   </body>
 </html>

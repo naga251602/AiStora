@@ -1,0 +1,264 @@
+<section
+  id="screen-landing"
+  class="screen absolute inset-0 overflow-auto bg-white no-scrollbar"
+>
+  <nav
+    class="max-w-7xl mx-auto px-8 h-24 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-50"
+  >
+    <div class="flex items-center gap-3">
+      <div
+        class="h-10 w-10 rounded-xl bg-zinc-950 flex items-center justify-center text-white"
+      >
+        <i data-lucide="database" class="h-5 w-5"></i>
+      </div>
+      <span class="text-xl font-bold tracking-tight">AiStora</span>
+    </div>
+    <button
+      onclick="Router.navigate('auth')"
+      class="text-sm font-bold text-zinc-500 hover:text-zinc-950 px-5 py-2"
+    >
+      Sign In
+    </button>
+  </nav>
+
+  <div class="max-w-7xl mx-auto pt-12 md:pt-20 pb-32 text-center px-6">
+    <div
+      class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-50 border border-zinc-100 mb-8 animate-in"
+    >
+      <span class="flex h-1.5 w-1.5 rounded-full bg-sky-500"></span>
+      <span
+        class="text-[10px] font-extrabold text-zinc-500 uppercase tracking-[0.2em]"
+        >Relational AI Engine 2.5 Active</span
+      >
+    </div>
+    <h1
+      class="text-5xl md:text-8xl font-black text-zinc-950 mb-8 leading-[0.95] animate-in stagger-1"
+    >
+      Turn data into <br /><span class="text-sky-600">conversation.</span>
+    </h1>
+    <p
+      class="max-w-xl mx-auto text-base md:text-xl text-zinc-400 mb-10 md:mb-12 leading-relaxed animate-in stagger-2"
+    >
+      AiStora autonomously connects any dataset, creating a queryable relational
+      map of your entire ecosystem.
+    </p>
+    <div
+      class="flex flex-col sm:flex-row items-center justify-center gap-5 animate-in stagger-3 mb-24"
+    >
+      <button
+        onclick="Router.navigate('auth')"
+        class="rounded-2xl bg-zinc-950 px-10 py-5 text-sm font-bold text-white hover:bg-zinc-800 transition-all shadow-2xl shadow-zinc-200 w-full sm:w-auto"
+      >
+        Get Started Free
+      </button>
+      <a
+        href="#live-interaction"
+        class="rounded-2xl bg-white border border-zinc-200 px-8 py-5 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-all flex items-center justify-center gap-3 w-full sm:w-auto"
+      >
+        <i data-lucide="play-circle" class="h-5 w-5 text-zinc-400"></i>
+        Watch Demo
+      </a>
+    </div>
+
+    <div class="py-24 border-t border-zinc-100 animate-in stagger-3">
+      <div class="text-center mb-16">
+        <h2
+          class="text-3xl md:text-4xl font-black text-zinc-950 mb-4 tracking-tight"
+        >
+          Core Capabilities
+        </h2>
+        <p class="text-zinc-400 font-medium">
+          Precision engineering for unstructured datasets.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="p-8 bento-card rounded-[2.5rem] text-left">
+          <div
+            class="h-12 w-12 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 mb-6"
+          >
+            <i data-lucide="zap" class="h-6 w-6"></i>
+          </div>
+          <h4 class="text-lg font-bold text-zinc-950 mb-3">
+            Relational Ingestion
+          </h4>
+          <p class="text-sm text-zinc-500 leading-relaxed">
+            Automatically detect Primary and Foreign keys across multiple CSV
+            sources.
+          </p>
+        </div>
+        <div class="p-8 bento-card rounded-[2.5rem] text-left">
+          <div
+            class="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-6"
+          >
+            <i data-lucide="message-circle" class="h-6 w-6"></i>
+          </div>
+          <h4 class="text-lg font-bold text-zinc-950 mb-3">Natural Querying</h4>
+          <p class="text-sm text-zinc-500 leading-relaxed">
+            No SQL required. Ask complex join queries in plain English and get
+            instant results.
+          </p>
+        </div>
+        <div class="p-8 bento-card rounded-[2.5rem] text-left">
+          <div
+            class="h-12 w-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-6"
+          >
+            <i data-lucide="bar-chart-2" class="h-6 w-6"></i>
+          </div>
+          <h4 class="text-lg font-bold text-zinc-950 mb-3">
+            Visual Intelligence
+          </h4>
+          <p class="text-sm text-zinc-500 leading-relaxed">
+            Dynamic charts generated automatically based on your analysis
+            context.
+          </p>
+        </div>
+        <div class="p-8 bento-card rounded-[2.5rem] text-left">
+          <div
+            class="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 mb-6"
+          >
+            <i data-lucide="shield-check" class="h-6 w-6"></i>
+          </div>
+          <h4 class="text-lg font-bold text-zinc-950 mb-3">Integrity Guard</h4>
+          <p class="text-sm text-zinc-500 leading-relaxed">
+            Heuristic checks ensure your architecture remains stable across
+            large updates.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="py-24 border-t border-zinc-100 bg-zinc-50/30">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-16">
+          <h2
+            class="text-3xl md:text-4xl font-black text-zinc-950 mb-4 tracking-tight"
+          >
+            The Workflow
+          </h2>
+          <p class="text-zinc-400 font-medium">
+            From raw files to logical answers in three steps.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+          <div class="text-center flex flex-col items-center group">
+            <div
+              class="h-16 w-16 rounded-full bg-zinc-950 text-white flex items-center justify-center font-black text-xl mb-6 shadow-xl group-hover:scale-110 transition-transform"
+            >
+              1
+            </div>
+            <h4 class="font-bold text-zinc-950 mb-2">Connect Sources</h4>
+            <p class="text-sm text-zinc-500">
+              Upload your CSV or JSON files into a unified workspace.
+            </p>
+          </div>
+          <div class="text-center flex flex-col items-center group">
+            <div
+              class="h-16 w-16 rounded-full bg-zinc-950 text-white flex items-center justify-center font-black text-xl mb-6 shadow-xl group-hover:scale-110 transition-transform"
+            >
+              2
+            </div>
+            <h4 class="font-bold text-zinc-950 mb-2">Auto-Mapping</h4>
+            <p class="text-sm text-zinc-500">
+              AI builds a relational graph of your data automatically.
+            </p>
+          </div>
+          <div class="text-center flex flex-col items-center group">
+            <div
+              class="h-16 w-16 rounded-full bg-zinc-950 text-white flex items-center justify-center font-black text-xl mb-6 shadow-xl group-hover:scale-110 transition-transform"
+            >
+              3
+            </div>
+            <h4 class="font-bold text-zinc-950 mb-2">Interactive Chat</h4>
+            <p class="text-sm text-zinc-500">
+              Run queries, export tables, and expand charts in real-time.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="live-interaction"
+      class="animate-in stagger-3 pt-24 border-t border-zinc-100"
+    >
+      <div class="max-w-7xl mx-auto text-center mb-16">
+        <h2
+          class="text-3xl md:text-4xl font-black text-zinc-950 mb-4 tracking-tight"
+        >
+          Interactive Intelligence
+        </h2>
+        <p class="text-zinc-400 font-medium text-center">
+          Select a data preview type to simulate a real conversation.
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-12 items-start text-left">
+        <div class="space-y-4 md:space-y-6">
+          <div
+            class="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-left hover:border-sky-200 transition-all cursor-pointer group landing-demo-tab active"
+            onclick="Main.runLandingDemo('metrics', this)"
+          >
+            <div class="flex items-center gap-4 mb-3">
+              <div
+                class="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:bg-sky-600 transition-all"
+              >
+                <i
+                  data-lucide="activity"
+                  class="h-5 w-5 text-sky-600 group-hover:text-white"
+                ></i>
+              </div>
+              <h4 class="font-bold text-zinc-900">Complex Aggregations</h4>
+            </div>
+            <p class="text-sm text-zinc-500 leading-relaxed italic">
+              "What's the total record density across tiers?"
+            </p>
+          </div>
+          <div
+            class="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-left hover:border-sky-200 transition-all cursor-pointer group landing-demo-tab"
+            onclick="Main.runLandingDemo('tables', this)"
+          >
+            <div class="flex items-center gap-4 mb-3">
+              <div
+                class="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:bg-sky-600 transition-all"
+              >
+                <i
+                  data-lucide="database"
+                  class="h-5 w-5 text-sky-600 group-hover:text-white"
+                ></i>
+              </div>
+              <h4 class="font-bold text-zinc-900">Relational Joins</h4>
+            </div>
+            <p class="text-sm text-zinc-500 leading-relaxed italic">
+              "Join entities and show me the integrity breakdown."
+            </p>
+          </div>
+          <div
+            class="p-6 bg-zinc-50 rounded-3xl border border-zinc-100 text-left hover:border-sky-200 transition-all cursor-pointer group landing-demo-tab"
+            onclick="Main.runLandingDemo('charts', this)"
+          >
+            <div class="flex items-center gap-4 mb-3">
+              <div
+                class="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:bg-sky-600 transition-all"
+              >
+                <i
+                  data-lucide="pie-chart"
+                  class="h-5 w-5 text-sky-600 group-hover:text-white"
+                ></i>
+              </div>
+              <h4 class="font-bold text-zinc-900">Automated Visualization</h4>
+            </div>
+            <p class="text-sm text-zinc-500 italic">
+              "Visualize the performance map across nodes."
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="relative bg-white border border-zinc-200 rounded-[2.5rem] shadow-2xl overflow-hidden p-6 md:p-8 min-h-[520px] flex flex-col no-scrollbar text-left"
+        >
+          <div id="landing-demo-output" class="flex-1 space-y-6"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

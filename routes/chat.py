@@ -1,186 +1,160 @@
 # routes/chat.py
 import json
 import re
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.llm_service import get_model
-from services.state_manager import get_dataframe
-from services.chart_builder import build_chart_url
 from services.security import secure_eval, SecurityViolation
-from services.logger import get_logger
+from engine.dataframe import DataFrame
+from models import Project, Table
+from services.chart_builder import build_chart_url
 
 chat_bp = Blueprint('chat', __name__)
-logger = get_logger(__name__)
+
+def get_project_context(project_id, user_id):
+    """
+    Helper to fetch all dataframes for a project and ensure ownership.
+    Returns (schema_dict, context_dict)
+    """
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return None, None
+    
+    schema = {}
+    context = {}
+    
+    for table in project.tables:
+        # Schema for LLM
+        schema[table.name] = table.columns_schema
+        # Dataframe for Execution
+        try:
+            df = DataFrame(source=table.filepath)
+            context[table.name] = df
+        except Exception as e:
+            print(f"Failed to load table {table.name}: {e}")
+            
+    return schema, context
 
 @chat_bp.route('/api/detect-relationships', methods=['POST'])
+@jwt_required()
 def detect_relationships():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-        
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    project_id = data.get('project_id')
+    
+    if not project_id:
+        return jsonify({'success': False, 'error': 'Project ID required'}), 400
+
+    schema, _ = get_project_context(project_id, current_user_id)
+    if not schema or len(schema) < 2:
+        # Not enough data to fail, just return empty
+        return jsonify({'success': True, 'relationships': []}) 
+
     model = get_model()
     if not model:
-        return jsonify({'success': False, 'error': 'AI model not configured'}), 500
-        
-    schema = session.get('db_schema', {})
-    if len(schema) < 2:
-        return jsonify({'success': False, 'error': 'At least two tables are required.'}), 400
+        return jsonify({'success': False, 'error': 'AI model not configured'}), 503
 
-    prompt_schema = {name: details['types'] for name, details in schema.items()}
-    
+    # Generate Prompt
     prompt = f"""
-    You are an expert database administrator. Given this schema:
-    {json.dumps(prompt_schema)}
-    Analyze and infer foreign key relationships. Return ONLY a JSON object:
-    {{ "success": true, "relationships": [ {{ "from_table": "t1", "from_column": "c1", "to_table": "t2", "to_column": "c2" }} ] }}
+    Analyze this database schema and identify potential Foreign Key relationships based on column names (e.g. customer_id matching id).
+    Schema: {json.dumps(schema)}
+    
+    Return a JSON object with this EXACT format:
+    {{ "relationships": [ {{ "from_table": "str", "from_column": "str", "to_table": "str", "to_column": "str" }} ] }}
+    
+    Strict JSON only. No markdown formatting. No comments.
     """
-
+    
     try:
         response = model.generate_content(prompt)
-        # Clean logic for JSON response
-        json_str = response.text.strip()
-        if json_str.startswith("```json"):
-            json_str = json_str[7:]
-        elif json_str.startswith("```"):
-            json_str = json_str[3:]
-        if json_str.endswith("```"):
-            json_str = json_str[:-3]
         
-        result = json.loads(json_str.strip())
-        session['db_relationships'] = result.get('relationships', [])
+        # --- SAFE GUARD START ---
+        if not response.candidates or not response.candidates[0].content.parts:
+            # If AI is silent, just return empty relationships instead of crashing
+            print("AI returned empty response for relationships.")
+            return jsonify({'success': True, 'relationships': []})
+            
+        text = response.text.strip()
         
-        logger.info(f"Relationships detected: {len(result.get('relationships', []))}")
-        return jsonify(result)
+        # Clean potential markdown code blocks
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        text = text.strip()
+        # --- SAFE GUARD END ---
+
+        result = json.loads(text)
+        return jsonify({'success': True, 'relationships': result.get('relationships', [])})
+        
+    except json.JSONDecodeError:
+        print(f"JSON Parse Error. AI Output: {text}")
+        return jsonify({'success': True, 'relationships': []}) # Fail gracefully
     except Exception as e:
-        logger.error(f"Error in Gemini relationship detection: {e}")
-        return jsonify({'success': False, 'error': f'AI API Error: {str(e)}'}), 500
+        print(f"Relationship Detection Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @chat_bp.route('/api/chat', methods=['POST'])
-def chat():
-    if 'user_id' not in session:
-        return jsonify({'type': 'error', 'data': 'Unauthorized.'}), 401
-        
+@jwt_required()
+def chat_query():
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    project_id = data.get('project_id')
+    user_query = data.get('query')
+
+    if not project_id or not user_query:
+        return jsonify({'type': 'error', 'data': 'Missing parameters'}), 400
+
+    # 1. Build Context (Stateless)
+    schema, context = get_project_context(project_id, current_user_id)
+    if not context:
+        return jsonify({'type': 'error', 'data': 'Project access denied or empty.'}), 403
+    
+    context['build_chart_url'] = build_chart_url
+
     model = get_model()
     if not model:
-        return jsonify({'type': 'error', 'data': 'AI model not configured'}), 500
+        return jsonify({'type': 'error', 'data': 'AI Service Unavailable'}), 503
 
-    data = request.get_json()
-    user_query = data.get('query')
-    schema = session.get('db_schema', {})
-    relationships = session.get('db_relationships', [])
-    
-    if not schema:
-        return jsonify({'type': 'error', 'data': 'No database schema found.'}), 400
-
-    # 1. Prepare Schema & Tables
-    prompt_schema = {name: details['types'] for name, details in schema.items()}
-    table_definitions = "\n".join([f"{name} = get_dataframe('{name}')" for name in schema.keys()])
-    
-    relationship_info = "No known relationships."
-    if relationships:
-        relationship_info = '\n'.join([f"{r['from_table']}.{r['from_column']} -> {r['to_table']}.{r['to_column']}" for r in relationships])
-
-    # 2. Robust Prompt with all fixes
-    prompt = f"""
-    You are a data analysis bot. You have access to a custom Python DataFrame library.
-
-    --- DATABASE SCHEMA ---
-    {json.dumps(prompt_schema, indent=2)}
-
-    --- AVAILABLE PYTHON OBJECTS ---
-    {table_definitions}
-    
-    --- METHODS & PROPERTIES ---
-    - len(df) -> int
-    - .filter(lambda row: condition) -> DataFrame
-    - .project(list_of_cols) -> list[dict]
-    - .join(other_df, left_col, right_col) -> DataFrame
-    - .groupby(col_name) -> dict
-    - .aggregate(groups, {{col: func}}) -> dict
-        - Supported funcs: 'count', 'sum', 'avg', 'min', 'max'
-    - .columns -> list[str] (This is a property, NOT a function)
-    - build_chart_url(title, type, data) -> str
-        - `data` MUST be the RAW dictionary returned by .aggregate().
-    
-    --- CRITICAL RULES ---
-    1.  **OUTPUT FORMAT:** Return JSON: {{ "isCode": boolean, "content": string }}.
-    2.  **TABLE OUTPUT:** To show a table, you MUST use `.project()`. To show ALL columns, use `df.columns` (e.g., `customers.project(customers.columns)[:10]`). You MUST slice the result (e.g., `[:10]`).
-    3.  **CHARTING:** When using `build_chart_url`, pass the result of `.aggregate()` DIRECTLY as the 3rd argument.
-    4.  **DATA TYPES:** Cast numbers when filtering (e.g., `int(row['age']) > 30`).
-    5.  **TABLE NAMES:** Use exact variable names.
-    6.  **FORBIDDEN:** Do NOT use `list()` or `.keys()`. Use `.columns`.
-    
-    --- EXAMPLES ---
-    User: "Hello"
-    Response: {{ "isCode": false, "content": "Hello! I am ready to analyze your data." }}
-
-    User: "How many students?" 
-    Response: {{ "isCode": true, "content": "len(students)" }}
-    
-    User: "show me the first 10 customers"
-    Response: {{ "isCode": true, "content": "customers.project(customers.columns)[:10]" }}
-
-    User: "Show me 3 orders"
-    Response: {{ "isCode": true, "content": "orders.project(orders.columns)[:3]" }}
-
-    User: "Plot a bar chart of sales by country"
-    Response: {{ "isCode": true, "content": "build_chart_url('Sales by Country', 'bar', customers.join(orders, 'customer_id', 'customer_id').aggregate(customers.join(orders, 'customer_id', 'customer_id').groupby('country'), {{'total_amount': 'sum'}}))" }}
-
-    NOW, generate the JSON for: "{user_query}"
+    # 2. Construct Prompt
+    # (Assuming system prompt is handled in llm_service configuration, we just send the message)
+    # We explicitly inject schema here to be safe
+    full_prompt = f"""
+    Context: {json.dumps(schema)}
+    Question: {user_query}
+    Generate the Python expression now.
     """
 
     try:
-        response = model.generate_content(prompt)
-        
-        # Clean Markdown
-        response_text = response.text.strip()
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        elif response_text.startswith("```"):
-            response_text = response_text[3:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        
-        ai_response = json.loads(response_text.strip())
-        
-        if not ai_response.get('isCode'):
-            return jsonify({'type': 'text', 'data': ai_response['content']})
-        
-        code_to_run = ai_response['content']
-        logger.info(f"--- AI-Generated Code ---\n{code_to_run}") # Log the code *before* execution
+        # 3. AI Generation
+        response = model.generate_content(full_prompt)
 
-        # 3. Context
-        safe_context = {
-            "get_dataframe": get_dataframe,
-            "len": len,
-            "int": int, "float": float, "str": str,
-            "build_chart_url": build_chart_url
-        }
-        for table_name in schema.keys():
-            safe_context[table_name] = get_dataframe(table_name)
+        # --- NEW SAFE GUARD START ---
+        # Check if we actually have text parts
+        if not response.candidates or not response.candidates[0].content.parts:
+            # Check if it was blocked by safety
+            if response.prompt_feedback and response.prompt_feedback.block_reason:
+                return jsonify({'type': 'error', 'data': f"AI Blocked: {response.prompt_feedback.block_reason}"}), 400
+            return jsonify({'type': 'error', 'data': "AI returned an empty response."}), 500
+            
+        code = response.text.strip().replace("```python", "").replace("```", "").strip()
+        # --- NEW SAFE GUARD END ---
         
-        result = secure_eval(code_to_run, safe_context)
-
-        # 4. Response Formatting
-        if isinstance(result, str) and result.startswith("https://quickchart.io"):
-            return jsonify({'type': 'chart', 'data': result, 'query': code_to_run})
+        # 4. Secure Execution
+        result = secure_eval(code, context)
+        
+        # 5. Result Formatting
+        if isinstance(result, str) and result.startswith("http"):
+             return jsonify({'type': 'chart', 'data': result, 'query': code})
         elif isinstance(result, list):
-            return jsonify({'type': 'table', 'data': result, 'query': code_to_run})
-        elif isinstance(result, dict):
-            table_result = []
-            group_key_match = re.search(r".groupby\('([^']+)'\)", code_to_run)
-            g_key = group_key_match.group(1) if group_key_match else "group"
-            for k, v in result.items():
-                row = {g_key: k}
-                row.update(v)
-                table_result.append(row)
-            return jsonify({'type': 'table', 'data': table_result, 'query': code_to_run})
-        elif isinstance(result, (int, float)):
-            return jsonify({'type': 'count', 'data': result, 'query': code_to_run})
+             return jsonify({'type': 'table', 'data': result, 'query': code})
+        elif hasattr(result, 'to_dict'): # Handle single row dicts if any
+             return jsonify({'type': 'text', 'data': str(result), 'query': code})
         else:
-            return jsonify({'type': 'text', 'data': str(result), 'query': code_to_run})
+             return jsonify({'type': 'text', 'data': str(result), 'query': code})
 
-    except SecurityViolation as se:
-        logger.warning(f"Security Violation Attempt: {str(se)}")
-        return jsonify({'type': 'error', 'data': f"Security Block: {str(se)}", 'query': code_to_run})
+    except SecurityViolation as e:
+        return jsonify({'type': 'error', 'data': f"Security: {str(e)}"}), 403
     except Exception as e:
-        logger.error(f"Chat processing error: {e}")
-        return jsonify({'type': 'error', 'data': f"Error: {str(e)}", 'query': 'N/A'})
+        return jsonify({'type': 'error', 'data': f"Error: {str(e)}"}), 500
