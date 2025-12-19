@@ -16,6 +16,25 @@ def get_databases():
         'databases': [{'id': p.id, 'name': p.name, 'table_count': len(p.tables)} for p in projects]
     })
 
+@databases_bp.route('/api/databases/<int:id>', methods=['PUT'])
+@jwt_required()
+def update_database(id):
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    new_name = data.get('name')
+    
+    if not new_name:
+        return jsonify({'success': False, 'error': 'Name required'}), 400
+
+    project = Project.query.filter_by(id=id, user_id=current_user_id).first()
+    if not project:
+        return jsonify({'success': False, 'error': 'Database not found'}), 404
+
+    project.name = new_name
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
 @databases_bp.route('/api/databases', methods=['POST'])
 @jwt_required()
 def create_database():

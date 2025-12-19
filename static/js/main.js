@@ -116,6 +116,42 @@ const Main = {
     }
   },
 
+  async deleteDatabase(id) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this workspace? This action cannot be undone."
+      )
+    )
+      return;
+
+    const res = await API.fetch(`/api/databases/${id}`, {
+      method: "DELETE",
+    });
+
+    if (res.success) {
+      this.loadDatabases(); // Refresh list
+    } else {
+      alert(res.error || "Failed to delete workspace");
+    }
+  },
+
+  async renameDatabase(id, currentName) {
+    // Simple prompt for now, can be replaced with a modal later
+    const newName = prompt("Rename Workspace:", currentName);
+    if (!newName || newName.trim() === "" || newName === currentName) return;
+
+    const res = await API.fetch(`/api/databases/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ name: newName.trim() }),
+    });
+
+    if (res.success) {
+      this.loadDatabases(); // Refresh UI
+    } else {
+      alert(res.error || "Failed to rename workspace");
+    }
+  },
+
   async loadDatabases() {
     const res = await API.fetch("/api/databases");
     if (res.success) {
@@ -126,10 +162,20 @@ const Main = {
         .map(
           (db) => `
                 <div onclick="Main.selectDatabase(${db.id})" class="bento-card col-span-12 md:col-span-4 p-8 rounded-[2.5rem] flex flex-col cursor-pointer animate-in relative overflow-hidden group hover:border-sky-400 transition-all">
+                    
+                    <div class="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <button onclick="event.stopPropagation(); Main.renameDatabase(${db.id}, '${db.name}')" class="h-8 w-8 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300 hover:bg-sky-50 hover:text-sky-600 transition-all shadow-sm" title="Rename">
+                            <i data-lucide="edit-3" class="h-4 w-4"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); Main.deleteDatabase(${db.id})" class="h-8 w-8 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm" title="Delete">
+                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+
                     <div class="h-14 w-14 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 mb-8 group-hover:bg-sky-600 group-hover:text-white transition-all">
                         <i data-lucide="database" class="h-7 w-7"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-zinc-950">${db.name}</h3>
+                    <h3 class="text-xl font-bold text-zinc-950 truncate">${db.name}</h3>
                     <p class="text-sm text-zinc-400 mt-2 mb-8 leading-relaxed">${db.table_count} Tables Active</p>
                     <div class="mt-auto flex items-center justify-between pt-6 border-t border-zinc-50">
                         <span class="text-[10px] font-bold text-zinc-300 uppercase">Last Active</span>
@@ -142,7 +188,6 @@ const Main = {
       lucide.createIcons();
     }
   },
-
   async selectDatabase(id) {
     const res = await API.fetch("/api/databases/select", {
       method: "POST",
