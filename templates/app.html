@@ -42,36 +42,6 @@ endblock %} {% block content %}
   {% include 'components/upload_screen.html' %} {% include
   'components/chat_screen.html' %}
 
-  <div
-    id="imageModal"
-    class="fixed inset-0 z-50 hidden bg-black bg-opacity-90 flex items-center justify-center p-4"
-    onclick="closeImageModal()"
-  >
-    <div class="relative max-w-5xl w-full" onclick="event.stopPropagation()">
-      <button
-        onclick="closeImageModal()"
-        class="absolute -top-10 right-0 text-white text-xl hover:text-gray-300"
-      >
-        <i class="fas fa-times"></i> Close
-      </button>
-      <img
-        id="modalImage"
-        src=""
-        alt="Expanded Chart"
-        class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl bg-white"
-      />
-      <div class="mt-4 text-center">
-        <a
-          id="modalDownloadLink"
-          href="#"
-          download="chart.png"
-          class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors"
-        >
-          <i class="fas fa-download mr-2"></i> Download High Res
-        </a>
-      </div>
-    </div>
-  </div>
 </main>
 
 {% include 'components/overlays.html' %} {% endblock %}

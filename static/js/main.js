@@ -5,6 +5,7 @@ const Main = {
     activeDbId: null,
     schema: {},
     chartInstances: {},
+    renameTargetId: null,
   },
 
   init() {
@@ -19,6 +20,75 @@ const Main = {
         "metrics",
         document.querySelector(".landing-demo-tab")
       );
+    }
+  },
+
+  async openPreview(tableName, tableId) {
+    // 1. Show loading state in modal title
+    const modal = document.getElementById("modal-preview");
+    const title = document.getElementById("preview-title");
+    const header = document.getElementById("preview-header");
+    const body = document.getElementById("preview-body");
+
+    modal.classList.remove("hidden");
+    title.innerText = `Loading ${tableName}...`;
+    body.innerHTML =
+      '<tr><td colspan="100%" class="p-8 text-center text-zinc-400">Fetching preview...</td></tr>';
+    header.innerHTML = "";
+
+    // 2. Fetch Data
+    const res = await API.fetch(`/api/tables/${tableId}/preview`);
+
+    if (res.success) {
+      title.innerText = `${res.name}.source`;
+
+      // Render Headers
+      header.innerHTML = res.columns
+        .map(
+          (col) =>
+            `<th class="px-8 py-6 font-black text-zinc-400 uppercase tracking-widest text-[10px] whitespace-nowrap">${col}</th>`
+        )
+        .join("");
+
+      // Render Rows
+      if (res.rows.length > 0) {
+        body.innerHTML = res.rows
+          .map(
+            (row) => `
+                <tr class="hover:bg-zinc-50 transition-colors">
+                    ${res.columns
+                      .map(
+                        (col) =>
+                          `<td class="px-8 py-6 font-bold text-zinc-700 whitespace-nowrap border-b border-zinc-50">${
+                            row[col] || "-"
+                          }</td>`
+                      )
+                      .join("")}
+                </tr>
+            `
+          )
+          .join("");
+      } else {
+        body.innerHTML =
+          '<tr><td colspan="100%" class="p-8 text-center text-zinc-400">Table is empty</td></tr>';
+      }
+    } else {
+      title.innerText = "Error";
+      body.innerHTML = `<tr><td colspan="100%" class="p-8 text-center text-red-500">${res.error}</td></tr>`;
+    }
+  },
+
+  closePreview() {
+    document.getElementById("modal-preview").classList.add("hidden");
+  },
+
+  async deleteTable(id) {
+    if (!confirm("Are you sure? This cannot be undone.")) return;
+    const res = await API.fetch(`/api/tables/${id}`, { method: "DELETE" });
+    if (res.success) {
+      this.selectDatabase(this.state.activeDbId); // Refresh UI
+    } else {
+      alert(res.error || "Delete failed");
     }
   },
 
@@ -281,22 +351,36 @@ const Main = {
     const schema = this.state.schema;
     if (!list) return;
 
+    // Handle empty state
+    if (Object.keys(schema).length === 0) {
+      list.innerHTML = `
+            <div class="col-span-12 p-12 text-center border-2 border-dashed border-zinc-100 rounded-[3rem] text-zinc-300">
+                <i data-lucide="layers" class="h-12 w-12 mx-auto mb-4 opacity-50"></i>
+                <p class="text-sm font-bold">No tables found.</p>
+                <p class="text-xs mt-1">Upload CSV files to begin.</p>
+            </div>`;
+      lucide.createIcons();
+      return;
+    }
+
     list.innerHTML = Object.entries(schema)
       .map(
         ([name, details]) => `
             <div class="p-8 bg-zinc-50 border border-zinc-100 rounded-[2.5rem] hover:border-sky-400 hover:bg-white transition-all cursor-pointer relative group">
                 <div class="absolute top-0 right-0 p-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="Main.openPreview('${name}')" class="h-8 w-8 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-300 hover:text-sky-600 transition-all shadow-sm">
+                    <button onclick="Main.openPreview('${name}', ${
+          details.id
+        })" class="h-8 w-8 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-300 hover:text-sky-600 transition-all shadow-sm">
                         <i data-lucide="eye" class="h-4 w-4"></i>
                     </button>
-                    <button onclick="Main.openRename('${
+                    <button onclick="Main.openRename(${
                       details.id
-                    }', '${name}')" class="h-8 w-8 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-300 hover:text-sky-600 transition-all shadow-sm">
+                    }, '${name}')" class="h-8 w-8 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-300 hover:text-sky-600 transition-all shadow-sm">
                         <i data-lucide="edit-3" class="h-4 w-4"></i>
                     </button>
-                    <button onclick="Main.deleteTable('${
+                    <button onclick="Main.deleteTable(${
                       details.id
-                    }')" class="h-8 w-8 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-300 hover:text-red-500 transition-all shadow-sm">
+                    })" class="h-8 w-8 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-300 hover:text-red-500 transition-all shadow-sm">
                         <i data-lucide="trash-2" class="h-4 w-4"></i>
                     </button>
                 </div>
@@ -305,7 +389,7 @@ const Main = {
                         <i data-lucide="table" class="h-7 w-7"></i>
                     </div>
                     <div>
-                        <p class="text-xl font-black text-zinc-950 tracking-tight text-left">${name}</p>
+                        <p class="text-xl font-black text-zinc-950 tracking-tight text-left truncate max-w-[180px]">${name}</p>
                         <p class="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-left">${
                           details.row_count
                         } Rows</p>
@@ -317,7 +401,7 @@ const Main = {
                       .map(
                         (col) => `
                         <div class="flex items-center justify-between text-[11px] font-semibold text-zinc-500 bg-white/50 p-3 rounded-xl border border-zinc-100/50">
-                            <span class="flex items-center gap-2"><i data-lucide="columns" class="h-3 w-3 text-zinc-400"></i> ${col}</span>
+                            <span class="flex items-center gap-2 truncate max-w-[70%]"><i data-lucide="columns" class="h-3 w-3 text-zinc-400"></i> ${col}</span>
                             <span class="uppercase text-[8px] font-black text-zinc-300">${details.types[col]}</span>
                         </div>
                     `
@@ -485,16 +569,39 @@ const Main = {
   // MODALS / CHAT
   // ============================================================
 
-  openPreview(tableName) {
-    alert("Preview for " + tableName + " (Backend route pending)");
+  openRename(id, currentName) {
+    // Save the ID so confirmRename knows which table to update
+    this.state.renameTargetId = id;
+
+    const modal = document.getElementById("modal-rename");
+    const input = document.getElementById("rename-input");
+
+    if (modal && input) {
+      input.value = currentName;
+      modal.classList.remove("hidden");
+      input.focus();
+
+      // Bind the Apply button dynamically or ensure HTML calls Main.confirmRename()
+      // Ideally, in app.html, the Apply button should correspond to confirmRename
+    } else {
+      // Fallback if modal is missing
+      const newName = prompt("Rename table:", currentName);
+      if (newName) this.renameTable(id, newName);
+    }
   },
 
-  openRename(id, currentName) {
-    // Ensure you have a modal with id="modal-rename" in your HTML or remove this
-    const newName = prompt("Rename table:", currentName);
-    if (newName) {
-      this.renameTable(id, newName);
-    }
+  async confirmRename() {
+    const id = this.state.renameTargetId;
+    const input = document.getElementById("rename-input");
+    const newName = input?.value.trim();
+
+    if (!newName) return;
+
+    // Call the API
+    await this.renameTable(id, newName);
+
+    // Close Modal
+    document.getElementById("modal-rename").classList.add("hidden");
   },
 
   async renameTable(id, newName) {
@@ -502,10 +609,11 @@ const Main = {
       method: "PUT",
       body: JSON.stringify({ name: newName }),
     });
+
     if (res.success) {
-      this.selectDatabase(this.state.activeDbId);
+      this.selectDatabase(this.state.activeDbId); // Refresh the UI
     } else {
-      alert(res.error);
+      alert(res.error || "Failed to rename table");
     }
   },
 

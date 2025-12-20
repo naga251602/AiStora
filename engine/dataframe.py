@@ -1,13 +1,12 @@
 # engine/dataframe.py
 from .parser import CsvParser
-import types
+import math
 
 class DataFrame:
     """
-    A custom DataFrame structure that can be sourced from a file (via CsvParser)
-    or from an in-memory list of dicts (for example, from a join).
+    A robust DataFrame engine supporting statistical analysis, 
+    aggregations, and SQL-like operations.
     """
-
     def __init__(self, source):
         self.source_type = 'list'
         self.data = []
@@ -21,7 +20,6 @@ class DataFrame:
             self.parser = CsvParser(source)
             self.header = self.parser.get_header()
             self.filepath = source
-            # Get types from the parser
             self.column_types = self.parser.get_column_types()
 
         elif isinstance(source, list):  # Source is in-memory data
@@ -29,287 +27,266 @@ class DataFrame:
             self.data = source
             if self.data:
                 self.header = list(self.data[0].keys())
-            # Infer types from the list data
-            self.column_types = self._infer_types_from_list(self.data)
+                self.column_types = self._infer_types_from_list(self.data)
+        elif isinstance(source, DataFrame):
+            self.source_type = source.source_type
+            self.data = source.data
+            self.header = source.header
+            self.parser = source.parser
+            self.filepath = source.filepath
+            self.column_types = source.column_types
         else:
             raise ValueError("DataFrame source must be a filepath (str) or data (list)")
 
-    def get_header(self):
-        """Returns the list of column headers."""
-        return self.header
+    # --- Core Properties & Magic Methods ---
 
     @property
     def columns(self):
-        """Alias for get_header() to support AI generated code like df.columns."""
+        """Returns the list of column names."""
         return self.header
 
-    def get_column_types(self):
-        """Public method to access the column types."""
-        return self.column_types
-
-    def _get_data(self):
-        """
-        Internal helper to get a fresh iterator of all data.
-        """
-        if self.source_type == 'file':
-            return self.parser.parse()
-        else:  # 'list'
-            return iter(self.data)  # Return an iterator for consistency
-
     def __len__(self):
-        """
-        Allows len(df) to work.
-        """
+        """Allows len(df) to work."""
         if self.source_type == 'file':
             count = 0
-            for _ in self.parser.parse():  # Use a fresh generator
+            for _ in self.parser.parse(cast=False):
                 count += 1
             return count
-        else:  # 'list'
+        else:
             return len(self.data)
 
-    def _infer_types_from_list(self, data):
-        """
-        Infers types from an in-memory list of dicts (for example, after a join).
-        """
-        if not data:
-            return {}
+    # --- Core Data Access ---
 
-        def _is_int(val):
-            try:
-                int(val)
-                return True
-            except (ValueError, TypeError):
-                return False
+    def _get_data(self):
+        """Returns an iterator for the data."""
+        if self.source_type == 'file':
+            return self.parser.parse()
+        else:
+            return iter(self.data)
 
-        def _is_float(val):
-            try:
-                float(val)
-                return True
-            except (ValueError, TypeError):
-                return False
+    def to_list(self):
+        """Materializes the DataFrame into a list of dictionaries."""
+        return list(self._get_data())
 
-        types = {col: 'int' for col in self.header}
-        sample_count = 0
-        for row in data:
-            if sample_count >= 50:
-                break
+    def head(self, n=5):
+        """Returns the first n rows."""
+        return list(self._get_iter_head(n))
+        
+    def _get_iter_head(self, n):
+        it = self._get_data()
+        try:
+            for _ in range(n):
+                yield next(it)
+        except StopIteration:
+            pass
 
-            for col_name, value in row.items():
-                if value is None or value == '':
-                    continue
+    # --- Statistical Operations ---
 
-                current_type = types.get(col_name, 'int')
-                if current_type == 'str':
-                    continue
+    def count(self):
+        """Returns the number of rows (scalar)."""
+        return len(self)
 
-                value_str = str(value)
-                if current_type == 'int':
-                    if not _is_int(value_str):
-                        types[col_name] = 'float'
-
-                if types[col_name] == 'float':
-                    if not _is_float(value_str):
-                        types[col_name] = 'str'
-            sample_count += 1
-        return types
-
-    def filter(self, condition_func):
-        """
-        Implements the selection operation.
-        Returns a new DataFrame with the filtered data.
-        """
-        filtered_data = [row for row in self._get_data() if condition_func(row)]
-        return DataFrame(source=filtered_data)
-
-    def project(self, columns):
-        """
-        Implements the projection (column selection) operation.
-        Returns a list of dicts (not a DataFrame).
-        """
-        projected_data = []
+    def _get_numeric_values(self, column):
+        """Helper to extract clean numeric values from a column."""
+        values = []
         for row in self._get_data():
-            new_row = {col: row[col] for col in columns if col in row}
-            projected_data.append(new_row)
-        return projected_data
+            val = row.get(column)
+            if val is not None and val != '':
+                try:
+                    values.append(float(val))
+                except (ValueError, TypeError):
+                    continue
+        return values
 
-    def groupby(self, column_name):
+    def min(self, column):
+        """Returns the minimum value in the column."""
+        vals = self._get_numeric_values(column)
+        return min(vals) if vals else None
+
+    def max(self, column):
+        """Returns the maximum value in the column."""
+        vals = self._get_numeric_values(column)
+        return max(vals) if vals else None
+
+    def mean(self, column):
+        """Calculates the arithmetic mean."""
+        vals = self._get_numeric_values(column)
+        return sum(vals) / len(vals) if vals else None
+
+    def std(self, column):
+        """Calculates the standard deviation."""
+        vals = self._get_numeric_values(column)
+        if not vals or len(vals) < 2:
+            return 0.0
+        avg = sum(vals) / len(vals)
+        variance = sum((x - avg) ** 2 for x in vals) / (len(vals) - 1)
+        return math.sqrt(variance)
+
+    def describe(self):
         """
-        Implements the group-by operation.
-        Returns a dictionary where keys are group values
-        and values are lists of rows.
+        Generates descriptive statistics for all numeric columns.
+        Returns a new DataFrame.
         """
+        stats_summary = []
+        
+        numeric_cols = [col for col in self.header if self.column_types.get(col) in ('int', 'float')]
+        if not numeric_cols:
+             numeric_cols = self.header
+
+        for col in numeric_cols:
+            vals = self._get_numeric_values(col)
+            if not vals:
+                continue
+                
+            count = len(vals)
+            avg = sum(vals) / count
+            minimum = min(vals)
+            maximum = max(vals)
+            
+            std_dev = 0.0
+            if count > 1:
+                variance = sum((x - avg) ** 2 for x in vals) / (count - 1)
+                std_dev = math.sqrt(variance)
+                
+            stats_summary.append({
+                "column": col,
+                "count": count,
+                "mean": round(avg, 2),
+                "std": round(std_dev, 2),
+                "min": minimum,
+                "max": maximum
+            })
+            
+        return DataFrame(source=stats_summary)
+
+    # --- Aggregations & Grouping ---
+
+    def groupby(self, column_name=None):
+        """
+        Groups data by a specific column.
+        If column_name is None, returns a single global group.
+        Returns a dictionary {group_key: [rows]}.
+        """
+        if column_name is None:
+            # Global aggregation support
+            return {"Total": list(self._get_data())}
+
         groups = {}
         for row in self._get_data():
-            key = row.get(column_name)
-            if key is not None:
-                if key not in groups:
-                    groups[key] = []
-                groups[key].append(row)
+            key = row.get(column_name, "Unknown")
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(row)
         return groups
 
-    def aggregate(self, groups, agg_func_map):
+    def aggregate(self, groups, agg_map):
         """
-        Implements the aggregation operation.
-        Takes the output of groupby() and an aggregation map.
-        Returns a dictionary (not a DataFrame).
-        Supported functions: count, sum, avg, min, max.
+        Performs aggregations on groups.
+        agg_map format: {"target_column": "func"} (e.g. {"salary": "mean"})
+        Returns a new DataFrame.
         """
-        results = {}
-        for key, rows in groups.items():
-            agg_result = {}
-            for col, func in agg_func_map.items():
-
+        results = []
+        for group_key, rows in groups.items():
+            res_row = {"group": group_key}
+            
+            for col, func in agg_map.items():
+                vals = []
+                # Optimization: if func is 'count', we don't need to parse floats
                 if func == 'count':
-                    agg_result[col] = len(rows)
-
-                elif func == 'sum':
-                    total = 0
-                    for row in rows:
+                    vals = rows # just needed for length
+                else:
+                    for r in rows:
                         try:
-                            total += float(row[col])
-                        except (ValueError, TypeError):
-                            continue
-                    agg_result[col] = total
+                            v = r.get(col)
+                            if v is not None and v != "":
+                                vals.append(float(v))
+                        except:
+                            pass
+                
+                val = None
+                if func == 'count': val = len(rows)
+                elif func == 'sum': val = sum(vals)
+                elif func == 'mean' or func == 'avg': val = sum(vals) / len(vals) if vals else 0
+                elif func == 'min': val = min(vals) if vals else 0
+                elif func == 'max': val = max(vals) if vals else 0
+                elif func == 'std':
+                    if len(vals) > 1:
+                        avg = sum(vals) / len(vals)
+                        var = sum((x - avg) ** 2 for x in vals) / (len(vals) - 1)
+                        val = math.sqrt(var)
+                    else:
+                        val = 0
 
-                elif func == 'avg':
-                    total = 0
-                    count = 0
-                    for row in rows:
-                        try:
-                            total += float(row[col])
-                            count += 1
-                        except (ValueError, TypeError):
-                            continue
-                    agg_result[col] = total / count if count > 0 else 0
+                if isinstance(val, float):
+                    val = round(val, 2)
+                    
+                res_row[f"{col}"] = val 
+            
+            results.append(res_row)
+            
+        return DataFrame(source=results)
 
-                elif func == 'min':
-                    min_val = None
-                    for row in rows:
-                        try:
-                            val = float(row[col])
-                            if min_val is None or val < min_val:
-                                min_val = val
-                        except (ValueError, TypeError):
-                            continue
-                    agg_result[col] = min_val
+    # --- Query Operations ---
 
-                elif func == 'max':
-                    max_val = None
-                    for row in rows:
-                        try:
-                            val = float(row[col])
-                            if max_val is None or val > max_val:
-                                max_val = val
-                        except (ValueError, TypeError):
-                            continue
-                    agg_result[col] = max_val
+    def filter(self, func):
+        return DataFrame(source=[row for row in self._get_data() if func(row)])
 
-            results[key] = agg_result
-        return results
-
-    def max_by(self, column_name):
-        """
-        Returns a list containing the single row with the maximum value
-        in column_name. Fully streamed; only one pass through the data.
-        """
-        max_row = None
-        max_val = float("-inf")
-
+    def project(self, columns):
+        """Returns a list of dicts with only selected columns."""
+        res = []
         for row in self._get_data():
-            val = row.get(column_name)
-            if val is None:
-                continue
+            res.append({k: row.get(k) for k in columns})
+        return res
 
+    def sort_by(self, key, reverse=False):
+        data = list(self._get_data())
+        try:
+            data.sort(key=lambda x: float(x.get(key, 0) or 0), reverse=reverse)
+        except:
+            data.sort(key=lambda x: str(x.get(key, "")), reverse=reverse)
+        return DataFrame(source=data)
+
+    def top_k_by(self, column, k=5):
+        return self.sort_by(column, reverse=True).head(k)
+
+    def max_by(self, column):
+        return self.sort_by(column, reverse=True).head(1)
+
+    def min_by(self, column):
+        return self.sort_by(column, reverse=False).head(1)
+
+    def join(self, right_df, left_on, right_on):
+        right_map = {}
+        for r in right_df._get_data():
+            k = r.get(right_on)
+            if k:
+                if k not in right_map: right_map[k] = []
+                right_map[k].append(r)
+        
+        joined = []
+        for l in self._get_data():
+            k = l.get(left_on)
+            if k in right_map:
+                for r in right_map[k]:
+                    new_row = l.copy()
+                    for rk, rv in r.items():
+                        if rk != right_on:
+                            new_row[rk] = rv
+                    joined.append(new_row)
+        return DataFrame(source=joined)
+        
+    def _infer_types_from_list(self, data):
+        if not data: return {}
+        types = {}
+        row = data[0]
+        for k, v in row.items():
             try:
-                v = float(val)
-            except (ValueError, TypeError):
-                continue
-
-            if v > max_val:
-                max_val = v
-                max_row = row
-
-        if max_row is None:
-            return []
-        return [max_row]
-
-    def min_by(self, column_name):
-        """
-        Returns a list containing the single row with the minimum value
-        in column_name. Fully streamed, one pass.
-        """
-        min_row = None
-        min_val = float("inf")
-
-        for row in self._get_data():
-            val = row.get(column_name)
-            if val is None:
-                continue
-
-            try:
-                v = float(val)
-            except (ValueError, TypeError):
-                continue
-
-            if v < min_val:
-                min_val = v
-                min_row = row
-
-        if min_row is None:
-            return []
-        return [min_row]
-
-    def top_k_by(self, column_name, k=5):
-        """
-        Returns top K rows sorted by a numeric column.
-        Loads data only once.
-        """
-        buffer = []
-
-        for row in self._get_data():
-            val = row.get(column_name)
-            if val is None:
-                continue
-            try:
-                v = float(val)
-            except Exception:
-                continue
-
-            buffer.append((v, row))
-
-        buffer.sort(key=lambda x: x[0], reverse=True)
-        return [r for _, r in buffer[:k]]
-
-    def join(self, right_dataframe, left_on, right_on):
-        """
-        Implements an inner join operation.
-        Returns a new DataFrame with the joined data.
-        """
-        joined_data = []
-
-        # Build the hash table (dictionary) from the right table
-        right_rows_by_key = {}
-        for right_row in right_dataframe._get_data():
-            key = right_row.get(right_on)
-            if key not in right_rows_by_key:
-                right_rows_by_key[key] = []
-            right_rows_by_key[key].append(right_row)
-
-        # Now stream the left table and perform the join
-        for left_row in self._get_data():
-            left_key = left_row.get(left_on)
-            if left_key in right_rows_by_key:
-                for right_row in right_rows_by_key[left_key]:
-                    new_row = left_row.copy()
-                    for key, value in right_row.items():
-                        if key == right_on:
-                            continue
-                        if key not in new_row:
-                            new_row[key] = value
-                        else:
-                            filepath_tag = right_dataframe.filepath if right_dataframe.filepath else 'joined'
-                            new_row[f"{filepath_tag}.{key}"] = value
-                    joined_data.append(new_row)
-
-        return DataFrame(source=joined_data)
+                int(str(v))
+                types[k] = 'int'
+            except:
+                try:
+                    float(str(v))
+                    types[k] = 'float'
+                except:
+                    types[k] = 'str'
+        return types

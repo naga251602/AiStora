@@ -23,10 +23,12 @@ def get_project_context(project_id, user_id):
     schema = {}
     context = {}
     
+    
     for table in project.tables:
         # Schema for LLM
         schema[table.name] = table.columns_schema
         # Dataframe for Execution
+        context[table.name] = DataFrame(source=table.filepath)
         try:
             df = DataFrame(source=table.filepath)
             context[table.name] = df
@@ -106,20 +108,17 @@ def chat_query():
     if not project_id or not user_query:
         return jsonify({'type': 'error', 'data': 'Missing parameters'}), 400
 
-    # 1. Build Context (Stateless)
     schema, context = get_project_context(project_id, current_user_id)
     if not context:
-        return jsonify({'type': 'error', 'data': 'Project access denied or empty.'}), 403
+        return jsonify({'type': 'error', 'data': 'Project access denied.'}), 403
     
+    # Inject helpers
     context['build_chart_url'] = build_chart_url
 
     model = get_model()
     if not model:
         return jsonify({'type': 'error', 'data': 'AI Service Unavailable'}), 503
 
-    # 2. Construct Prompt
-    # (Assuming system prompt is handled in llm_service configuration, we just send the message)
-    # We explicitly inject schema here to be safe
     full_prompt = f"""
     Context: {json.dumps(schema)}
     Question: {user_query}
@@ -127,34 +126,28 @@ def chat_query():
     """
 
     try:
-        # 3. AI Generation
         response = model.generate_content(full_prompt)
-
-        # --- NEW SAFE GUARD START ---
-        # Check if we actually have text parts
+        
         if not response.candidates or not response.candidates[0].content.parts:
-            # Check if it was blocked by safety
-            if response.prompt_feedback and response.prompt_feedback.block_reason:
-                return jsonify({'type': 'error', 'data': f"AI Blocked: {response.prompt_feedback.block_reason}"}), 400
             return jsonify({'type': 'error', 'data': "AI returned an empty response."}), 500
             
         code = response.text.strip().replace("```python", "").replace("```", "").strip()
-        # --- NEW SAFE GUARD END ---
         
-        # 4. Secure Execution
         result = secure_eval(code, context)
         
-        # 5. Result Formatting
-        if isinstance(result, str) and result.startswith("http"):
-             return jsonify({'type': 'chart', 'data': result, 'query': code})
+        # --- RETURN TYPE HANDLING ---
+        if isinstance(result, DataFrame):
+             # Automatically convert DataFrames (like from describe()) to tables
+             return jsonify({'type': 'table', 'data': result.to_list(), 'query': code})
+             
         elif isinstance(result, list):
              return jsonify({'type': 'table', 'data': result, 'query': code})
-        elif hasattr(result, 'to_dict'): # Handle single row dicts if any
-             return jsonify({'type': 'text', 'data': str(result), 'query': code})
+             
+        elif isinstance(result, str) and result.startswith("http"):
+             return jsonify({'type': 'chart', 'data': result, 'query': code})
+             
         else:
              return jsonify({'type': 'text', 'data': str(result), 'query': code})
 
-    except SecurityViolation as e:
-        return jsonify({'type': 'error', 'data': f"Security: {str(e)}"}), 403
     except Exception as e:
         return jsonify({'type': 'error', 'data': f"Error: {str(e)}"}), 500

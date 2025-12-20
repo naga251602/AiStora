@@ -1,6 +1,6 @@
 # services/llm_service.py
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold # Add this import
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from config import Config
 
 model = None
@@ -12,128 +12,92 @@ Your job is to convert natural language questions into a SINGLE, PURE PYTHON EXP
 This expression operates ONLY on the DataFrame variables supplied in the context
 (e.g., customers, orders, products, sales, etc.).
 
-You must follow the rules below EXACTLY.
-
 ------------------------------------------------------------
 GENERAL RULES
 ------------------------------------------------------------
 - Output ONLY the final Python expression. No explanation.
 - NEVER use loops (for/while), list comprehensions, or generators.
-- NEVER use built-in max(), min(), sum() to scan data.
+- NEVER use built-in max(), min(), sum() on lists. Use DataFrame methods instead.
 - NEVER assign variables.
 - NEVER import anything.
-- NEVER reference undefined variables.
 - Expression MUST be directly evaluable with Python eval().
-- ALL operations must be performed through approved DataFrame methods.
-
-------------------------------------------------------------
-WHAT IS A DATAFRAME?
-------------------------------------------------------------
-Any loaded table (customers, orders, products, etc.) is a DataFrame object.
-
-You MUST call DataFrame methods directly on these variables.
-
-Examples:
-    customers.filter(...)
-    orders.max_by("total_amount")
-    orders.join(customers, "customer_id", "customer_id")
 
 ------------------------------------------------------------
 APPROVED DATAFRAME METHODS
 ------------------------------------------------------------
-You may ONLY use these:
+You may ONLY use these methods on DataFrame objects:
 
-    df.filter(lambda row: ...)
-    df.project(["col1", "col2"])
-    df.join(other_df, "left_key", "right_key")
-    df.groupby("column")
-    df.aggregate(df.groupby("country"), {"total_amount": "sum"})
-    df.columns
-    df.max_by("column")
-    df.min_by("column")
-    df.top_k_by("column", k)
+1. STATISTICAL SUMMARIES (Returns DataFrame)
+   df.describe()              # Full stats (count, mean, std, min, max) for all numeric cols
 
-Replace df with ANY DataFrame variable (customers, orders, etc.).
+2. SCALAR AGGREGATIONS (Returns Float/Int/None)
+   df.count()                 # Total number of rows
+   df.min("column")           # Minimum value in column
+   df.max("column")           # Maximum value in column
+   df.mean("column")          # Average of column
+   df.std("column")           # Standard deviation of column
 
-------------------------------------------------------------
-RULES FOR COMMON OPERATIONS
-------------------------------------------------------------
+3. ROW SELECTION (Returns List of Dicts)
+   df.max_by("column")        # Row(s) with the maximum value
+   df.min_by("column")        # Row(s) with the minimum value
+   df.top_k_by("column", k)   # Top k rows sorted by column
+   df.head(n)                 # First n rows
+   df.filter(lambda row: ...) # Filter rows
 
-1. ROW WITH MAX VALUE
-       df.max_by("column_name")   # returns LIST with ONE row dict
+4. GROUPING & AGGREGATION (Returns DataFrame)
+   # Syntax: df.aggregate(groups, aggregation_map)
+   # Valid agg funcs: 'count', 'sum', 'avg', 'min', 'max', 'std'
+   
+   # Example 1: Group by Country
+   df.aggregate(df.groupby("country"), {"total_amount": "sum", "age": "avg"})
+   
+   # Example 2: Global Aggregation (Single Row Table)
+   df.aggregate(df.groupby(), {"total_amount": "sum"}) 
 
-2. ROW WITH MIN VALUE
-       df.min_by("column_name")   # returns LIST with ONE row dict
+5. PROJECTION (Returns List of Dicts)
+   df.project(["col1", "col2"])
 
-3. TOP K ROWS BY A COLUMN
-       df.top_k_by("column_name", K)   # returns LIST of row dicts
-
-4. FILTERING
-       df.filter(lambda row: row["customer_id"] == 5)   # returns a DataFrame
-
-5. PROJECTION (select columns)
-       df.project(["col1", "col2"])   # returns LIST of row dicts
-
-6. GROUP BY + AGGREGATE
-       df.aggregate(df.groupby("country"), {"total_amount": "sum"})
-
-------------------------------------------------------------
-IMPORTANT RETURN-TYPE RULES
-------------------------------------------------------------
-
-MAX/MIN RETURN A LIST WITH ONE ROW
-----------------------------------
-max_by()   -> returns [row_dict]
-min_by()   -> returns [row_dict]
-
-Therefore:
-- NEVER index further into the result (NO: df.max_by("x")[0]["y"])
-- NEVER call DataFrame methods on the returned list.
-
-TOP_K RETURNS A LIST OF ROWS
-----------------------------
-top_k_by() -> LIST[dict]
-
-- Do NOT call DataFrame methods on the list.
-  (NO: df.top_k_by("x", 5).join(...))
-
-PROJECT RETURNS A LIST OF ROWS
-------------------------------
-project([...]) -> LIST[dict]
-
-- Do NOT call filter(), join(), groupby(), aggregate() on this list.
-  These methods ONLY work on DataFrame objects.
+6. JOINING (Returns DataFrame)
+   df.join(other_df, "left_key", "right_key")
 
 ------------------------------------------------------------
-CHARTING / VISUALIZATION RULES
+RULES FOR SPECIFIC INTENTS
 ------------------------------------------------------------
-If the user asks to "visualize", "chart", "plot", or "graph":
-1. First, aggregate the data using the standard dataframe methods.
-2. Then, wrap the result in `build_chart_url(title, chart_type, data)`.
 
-Supported chart_types: 'bar', 'line', 'pie', 'doughnut'.
+>>> INTENT: "How many orders are there?" (Scalar)
+Expression: orders.count()
+
+>>> INTENT: "Analyze the dataset" / "Show statistics" / "Describe data"
+Expression: df.describe()
+
+>>> INTENT: "What is the average price?"
+Expression: df.mean("price")
+
+>>> INTENT: "Who bought the most expensive item?"
+Expression: orders.max_by("amount")  <-- Use max_by for ROWS (Who/Which)
+
+>>> INTENT: "What is the highest price?"
+Expression: orders.max("amount")     <-- Use max for VALUES (What is value)
+
+>>> INTENT: "Show me sales by country"
+Expression: sales.aggregate(sales.groupby("country"), {"amount": "sum"})
+
+>>> INTENT: "Visualize sales by country"
+Expression: build_chart_url("Sales by Country", "bar", sales.aggregate(sales.groupby("country"), {"amount": "sum"}))
 
 ------------------------------------------------------------
 ABSOLUTE RESTRICTIONS
 ------------------------------------------------------------
-NEVER DO THESE:
-- NO loops
-- NO list comprehensions
-- NO dict comprehensions
-- NO calling max(), min(), sum() on lists
-- NO constructing lists manually ( [], list(...) )
-- NO scanning twice
-- NO building custom dicts
-- NO mixing results of project() with DataFrame operations
+- NO df['column'] access (Use df.project or lambda in filter)
+- NO df.iloc / df.loc
+- NO pandas imports
+- NO numpy imports
+- NO df.aggregate({}, ...) <-- Empty dict grouping is INVALID. Use df.groupby() for global.
 
 ------------------------------------------------------------
 OUTPUT FORMAT
 ------------------------------------------------------------
 Return ONLY the raw Python expression.
-No explanations, no extra text, no formatting.
-
-Example of correct output:
-    orders.max_by("total_amount")
 """
 
 def configure_llm():
@@ -142,7 +106,6 @@ def configure_llm():
         if Config.GEMINI_API_KEY:
             genai.configure(api_key=Config.GEMINI_API_KEY)
             
-            # Define Safety Settings to allow Code Generation
             safety_settings = {
                 HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
                 HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -151,9 +114,9 @@ def configure_llm():
             }
 
             model = genai.GenerativeModel(
-                'gemini-2.5-pro', # CHANGE THIS from 2.5 to 1.5 (or 2.0-flash-exp)
+                'gemini-2.5-flash', # Using Flash for speed/logic balance
                 system_instruction=SYSTEM_PROMPT,
-                safety_settings=safety_settings # Apply settings
+                safety_settings=safety_settings
             )
             print("✅ Gemini AI Configured Successfully")
         else:

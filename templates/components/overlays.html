@@ -15,9 +15,123 @@
     <p class="text-xs text-slate-600" id="loading-text">Please wait...</p>
   </div>
 </div>
+
+<div
+  id="modal-preview"
+  class="fixed inset-0 z-[100] bg-zinc-950/20 backdrop-blur-sm hidden flex items-center justify-center p-4"
+>
+  <div
+    class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-in"
+  >
+    <div
+      class="px-8 py-6 border-b border-zinc-100 flex items-center justify-between shrink-0 bg-white z-10"
+    >
+      <div>
+        <h3
+          id="preview-title"
+          class="text-xl font-black text-zinc-950 tracking-tight"
+        >
+          Table Preview
+        </h3>
+        <p
+          class="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1"
+        >
+          Live Data Source
+        </p>
+      </div>
+      <button
+        onclick="Main.closePreview()"
+        class="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 transition-colors"
+      >
+        <i data-lucide="x" class="h-5 w-5"></i>
+      </button>
+    </div>
+    <div
+      class="flex-1 overflow-auto bg-zinc-50/50 p-0 scrollbar-thin scrollbar-thumb-zinc-300"
+    >
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-white sticky top-0 shadow-sm z-10">
+          <tr id="preview-header"></tr>
+        </thead>
+        <tbody id="preview-body" class="divide-y divide-zinc-100"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div
+  id="modal-rename"
+  class="fixed inset-0 z-[100] bg-zinc-950/20 backdrop-blur-sm hidden flex items-center justify-center p-4"
+>
+  <div
+    class="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md animate-in"
+  >
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-xl font-bold text-zinc-950">Rename Table</h3>
+      <button
+        onclick="document.getElementById('modal-rename').classList.add('hidden')"
+        class="h-8 w-8 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 transition-colors"
+      >
+        <i data-lucide="x" class="h-4 w-4"></i>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <label
+          class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest"
+          >New Name</label
+        >
+        <input
+          type="text"
+          id="rename-input"
+          class="w-full h-14 px-5 rounded-2xl bg-zinc-50 border-2 border-transparent focus:border-zinc-950 focus:bg-white transition-all font-bold text-zinc-900 outline-none placeholder:text-zinc-300"
+          placeholder="Enter name..."
+        />
+      </div>
+      <button
+        onclick="Main.confirmRename()"
+        class="w-full h-14 bg-zinc-950 text-white rounded-2xl font-bold text-sm hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200"
+      >
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
 <div
   id="error-toast"
   class="hidden absolute top-4 right-4 bg-red-500 text-white text-xs px-4 py-3 rounded-lg shadow-lg z-50"
 >
   <span id="error-message"></span>
+</div>
+
+<div
+  id="imageModal"
+  class="fixed inset-0 z-50 hidden bg-black bg-opacity-90 flex items-center justify-center p-4"
+  onclick="closeImageModal()"
+>
+  <div class="relative max-w-5xl w-full" onclick="event.stopPropagation()">
+    <button
+      onclick="closeImageModal()"
+      class="absolute -top-10 right-0 text-white text-xl hover:text-gray-300"
+    >
+      <i class="fas fa-times"></i> Close
+    </button>
+    <img
+      id="modalImage"
+      src=""
+      alt="Expanded Chart"
+      class="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl bg-white"
+    />
+    <div class="mt-4 text-center">
+      <a
+        id="modalDownloadLink"
+        href="#"
+        download="chart.png"
+        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors"
+      >
+        <i class="fas fa-download mr-2"></i> Download High Res
+      </a>
+    </div>
+  </div>
 </div>
