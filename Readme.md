@@ -1,162 +1,62 @@
 # AIStora
 
-AIStora is an end-to-end AI analytics platform powered by a custom in-memory data engine and a natural-language query layer. It enables users to upload CSV files, explore them using SQL-like logic, and generate visual insights simply by chatting with an AI assistant.
-
-Built with Flask, PostgreSQL, Docker, and a lightweight custom engine, AIStora performs fast projections, filters, joins, and aggregations without relying on Pandas. Gemini AI converts natural-language questions into executable data operations.
+A self-hosted, privacy-first analytics platform for small business accountants and bookkeepers — query your QuickBooks, Xero, and Shopify exports in plain English. No SQL. No data team. No data ever sent to an AI.
 
 ---
 
-## 🎥 Demo
-
-A short walkthrough demonstrating:
-- CSV upload and logical database creation  
-- Natural-language query execution  
-- AI-generated query plans  
-- Real-time tables and visualizations  
+## Demo
 
 <p>
-  <strong>▶️ Demo video:</strong><br/><br/>
   <img src="./demo/demo.gif" width="800" height="800"/>
 </p>
 
 ---
 
-## Features
+## The problem
 
-**AI-Driven Data Exploration**  
-Ask questions in plain English and let the system translate them into executable data operations.
+Small accountants and bookkeepers can't upload sensitive client data to tools like ChatGPT, and can't afford a data team. They're stuck manually digging through CSV exports to answer routine financial questions.
 
-**Custom In-Memory Engine**  
-A lightweight engine optimized for speed, supporting:
-- Column projection and row filtering  
-- Grouping and aggregation  
-- Inner joins and type inference  
-- Streaming CSV parsing for large datasets  
-
-**Instant Visualizations**  
-Generate tables, counts, bar charts, and line plots in real time.
-
-**Secure Authentication**  
-User registration, login, and session-based access control.
-
-**Logical Databases**  
-Isolated workspaces with support for multiple CSVs per database.
-
-**Zero Pandas Dependency**  
-All data logic is implemented natively.
+AIStora fixes this — upload your CSV to your own server, ask in plain English, get your answer. The AI never sees your actual data.
 
 ---
 
-## Tech Stack
+## What makes it different from ChatGPT
 
-**Backend:** Flask, SQLAlchemy, Gunicorn  
-**Database:** PostgreSQL  
-**Engine:** Custom DataFrame implementation with streaming CSV parser  
-**AI / LLM:** Google Gemini  
-**Frontend:** Vanilla JavaScript, Tailwind CSS, HTML templates  
-**Infrastructure:** Docker, Docker Compose  
-**CI/CD:** GitHub Actions
+Your data is stored on your own server. When you ask a question, the LLM only sees the schema — column names and types — never your actual rows. The query plan is generated from the schema alone and executed locally by our in-memory engine. We also built prompt guardrails to keep query generation predictable and safe against adversarial inputs.
 
 ---
 
-## Architecture
+## Under the hood
 
-```mermaid
-graph TD
-    User[User] -->|Browser / Chat| UI[Frontend UI]
-    UI -->|HTTP Requests| API[Flask Backend]
-    API -->|Auth| DB[(PostgreSQL)]
-    API -->|Natural Language Query| LLM[Gemini AI]
-    LLM -->|Query Plan| Engine[Custom Data Engine]
-    Engine -->|Read| CSV[CSV Files]
-    Engine -->|Results| API
-````
+- Custom DataFrame engine — no Pandas, built from scratch
+- Streaming CSV parser for large exports
+- PostgreSQL for persistence and auth, engine handles compute
+- Gemini generates query plans, engine executes them
 
 ---
 
-## Installation & Setup
+## Tech stack
 
-### Prerequisites
+| Layer | Tools |
+|---|---|
+| Backend | Flask, SQLAlchemy, Gunicorn |
+| Engine | Custom DataFrame + streaming CSV parser |
+| Database | PostgreSQL |
+| AI / LLM | Google Gemini |
+| Frontend | Vanilla JS, Tailwind CSS |
+| Infra | Docker, Docker Compose, GitHub Actions |
 
-* Docker Desktop
-* Git
-* Google Gemini API key
+---
 
-### 1. Clone the Repository
-
+## Run it locally
 ```bash
 git clone https://github.com/naga251602/AIStora.git
 cd AIStora
-```
-
-### 2. Configure Environment Variables
-
-```bash
-cp .env.example .env
-```
-
-Add your Gemini API key and other configuration values.
-
-### 3. Run with Docker
-
-```bash
+cp .env.example .env   # add your Gemini API key
 docker-compose up --build
-```
-
-Run in detached mode:
-
-```bash
-docker-compose up --build -d
-```
-
-### 4. Access the Application
-
-```
-http://localhost:5001
-```
-
-Stop the application:
-
-```bash
-docker-compose down
+# open http://localhost:5001
 ```
 
 ---
 
-## Development Workflow
-
-### Directory Structure
-
-```
-/engine         # Custom DataFrame and parser logic
-/services       # LLM integration and chart generation
-/routes         # Blueprints for auth, chat, and data operations
-/templates      # Jinja2 HTML templates
-/static         # JavaScript and Tailwind CSS
-/tests          # Pytest suite
-```
-
-### Running Tests
-
-```bash
-docker-compose exec web pytest
-```
-
----
-
-## Why This Project Matters
-
-**Custom Compute Engine**
-Demonstrates strong understanding of data structures, parsing, and query execution.
-
-**System Design**
-Integrates AI, persistent storage, and in-memory computation in a Dockerized architecture.
-
-**Modularity**
-Clear separation between the data engine, web layer, and AI services.
-
----
-
-## License
-
-MIT License
+MIT License · DSCI 551 · Fall 2025 · USC
